@@ -1,0 +1,17 @@
+node_modules/
+.pnpm-store/
+.turbo/
+.next/
+dist/
+coverage/
+expo-env.d.ts
+web-build/
+apps/mobile/ios/
+apps/mobile/android/
+packages/database/src/generated/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+Thumbs.db

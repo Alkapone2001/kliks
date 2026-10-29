@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "KLIKS",
+    "slug": "kliks",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true
+  }
+}

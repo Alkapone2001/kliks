@@ -1,0 +1,20 @@
+{
+  "name": "@kliks/database",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "pnpm db:generate",
+    "lint": "eslint prisma.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "db:generate": "dotenv -e ../../.env -- prisma generate",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:deploy": "dotenv -e ../../.env -- prisma migrate deploy"
+  },
+  "devDependencies": {
+    "prisma": "7.10.1",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "@prisma/client": "7.10.1"
+  }
+}
