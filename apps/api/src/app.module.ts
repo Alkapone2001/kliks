@@ -1,13 +1,21 @@
 import { Module } from '@nestjs/common';
-import { AuditModule } from './modules/audit/audit.module';
-import { BankingModule } from './modules/banking/banking.module';
-import { DirectoryModule } from './modules/directory/directory.module';
-import { IdentityModule } from './modules/identity/identity.module';
-import { PaymentsModule } from './modules/payments/payments.module';
-import { HealthController } from './health.controller';
+import { AuditModule } from './modules/audit/audit.module.js';
+import { BankingModule } from './modules/banking/banking.module.js';
+import { DirectoryModule } from './modules/directory/directory.module.js';
+import { IdentityModule } from './modules/identity/identity.module.js';
+import { PaymentsModule } from './modules/payments/payments.module.js';
+import { HealthController } from './health.controller.js';
+import { DatabaseModule } from './database/database.module.js';
 
 @Module({
-  imports: [IdentityModule, DirectoryModule, BankingModule, PaymentsModule, AuditModule],
+  imports: [
+    DatabaseModule,
+    IdentityModule,
+    DirectoryModule,
+    BankingModule,
+    PaymentsModule,
+    AuditModule,
+  ],
   controllers: [HealthController],
 })
 export class AppModule {}

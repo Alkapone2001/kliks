@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { BankConnector, PaymentInitiationRequest } from './bank-connector';
+import type { BankConnector, PaymentInitiationRequest } from './bank-connector.js';
 
 @Injectable()
 export class MockBankConnector implements BankConnector {

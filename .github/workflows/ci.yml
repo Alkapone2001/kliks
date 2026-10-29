@@ -8,6 +8,22 @@ on:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://kliks:kliks_local_dev_only@localhost:5432/kliks?schema=public
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: kliks
+          POSTGRES_PASSWORD: kliks_local_dev_only
+          POSTGRES_DB: kliks
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kliks -d kliks"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -26,6 +42,9 @@ jobs:
 
       - name: Configure local-only database environment
         run: cp .env.example .env
+
+      - name: Apply database migrations
+        run: pnpm db:deploy
 
       - name: Check formatting
         run: pnpm format:check

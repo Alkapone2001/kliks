@@ -5,7 +5,7 @@ import {
   InvalidPaymentTransitionError,
   PaymentState,
   transitionPayment,
-} from '../src/modules/payments/domain/payment';
+} from '../src/modules/payments/domain/payment.js';
 
 const payment = () =>
   createPayment({

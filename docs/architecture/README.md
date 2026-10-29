@@ -16,7 +16,7 @@ The system starts as a TypeScript modular monolith. NestJS modules establish dom
 - **Payments** owns payment records, amount and parties, allowed state transitions, idempotency, and orchestration through the connector abstraction. It must not depend on `MockBankConnector` directly.
 - **Audit** defines append-oriented records for security- and payment-sensitive actions. Events must exclude credentials, OTPs, tokens, and unnecessary personal data.
 
-Phase 1 creates module boundaries and domain foundations only. Authentication, identity workflows, directory lookups, and payment orchestration belong to later approved phases.
+Identity now persists internal IDs, normalized Kosovo phone numbers, canonical usernames, and phone-verification status. Its create/verification endpoints are hidden in production and return only safe identity previews. There is intentionally no public phone-number lookup endpoint; directory lookup belongs to its later approved phase. Authentication, production SMS, bank connection, and payment orchestration are not implemented.
 
 ## Money and payment safety
 
@@ -36,7 +36,7 @@ Do not implement a real connector until authentic provider documentation and san
 
 ## Data and local infrastructure
 
-PostgreSQL is the planned source of truth; Prisma is configured in `packages/database`. The Phase 1 schema intentionally has no domain tables. Redis is available for local development only and is not an authoritative store for payment state. Docker ports bind to loopback and use development-only credentials.
+PostgreSQL is the source of truth; Prisma models identity and verification challenges in `packages/database`. Redis is available for local development only and is not an authoritative store for payment state. Docker ports bind to loopback and use development-only credentials.
 
 ## Simulation status
 

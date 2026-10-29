@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Money } from '@kliks/shared';
-import { MockBankConnector } from '../src/modules/banking/mock-bank-connector';
+import { MockBankConnector } from '../src/modules/banking/mock-bank-connector.js';
 
 describe('MockBankConnector', () => {
   it('returns a deterministic simulated pending payment', async () => {

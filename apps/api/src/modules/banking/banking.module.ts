@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { BANK_CONNECTOR } from './bank-connector';
-import { MockBankConnector } from './mock-bank-connector';
+import { BANK_CONNECTOR } from './bank-connector.js';
+import { MockBankConnector } from './mock-bank-connector.js';
 
 @Module({
   providers: [MockBankConnector, { provide: BANK_CONNECTOR, useExisting: MockBankConnector }],
