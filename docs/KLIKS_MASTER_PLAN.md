@@ -101,3 +101,11 @@ Update this section at the end of each project work session or approved task. Re
 - **Not run:** Docker containers were not started; GitHub Actions was not executed on a hosted runner. Compose configuration was validated locally.
 - **Known constraints:** Prisma schema intentionally has no domain tables or migrations. There is no authentication, identity workflow, payment endpoint/workflow, real bank/provider, or money movement.
 - **Next approval point:** Phase 1 is complete. Stop here and wait for explicit approval before Phase 2.
+
+### 2026-10-29: UI polish follow-up
+
+- **Phase scope:** Visual-only refinement of the existing Phase 1 web and mobile shells. No later-phase behavior was started.
+- **Changed:** Applied a shared Space Grotesk brand system, clearer KLIKS identity, concept-only flow preview, explicit simulation notice, and concise foundation status rows. Fonts are bundled locally for web and native apps. The layout is responsive and respects reduced-motion preferences on web.
+- **Safety:** No send controls, balances, account connection, real provider, or payment claims were added. The future flow is labeled concept-only; the current simulation warning remains prominent.
+- **Verified:** `pnpm format:check`; `pnpm lint`; `pnpm typecheck`; `pnpm test` (27 passed); `pnpm build` including Next static output and Android/iOS exports. Browser checks returned HTTP 200 and confirmed no horizontal overflow at 390px mobile and 1440px desktop widths; simulation notice was visible on mobile.
+- **Next:** Phase 1 remains complete. Wait for explicit approval before starting Phase 2.

@@ -1,4 +1,10 @@
-import { SpaceGrotesk_400Regular, SpaceGrotesk_500Medium, SpaceGrotesk_600SemiBold, SpaceGrotesk_700Bold, useFonts } from '@expo-google-fonts/space-grotesk';
+import {
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+  useFonts,
+} from '@expo-google-fonts/space-grotesk';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
@@ -21,7 +27,9 @@ export default function App() {
         <View style={styles.header}>
           <View style={styles.brand}>
             <Text style={[styles.brandMark, bold]}>k</Text>
-            <Text style={[styles.wordmark, bold]}>KLIKS<Text style={styles.wordmarkDot}>.</Text></Text>
+            <Text style={[styles.wordmark, bold]}>
+              KLIKS<Text style={styles.wordmarkDot}>.</Text>
+            </Text>
           </View>
           <View style={styles.previewLabel}>
             <View style={styles.previewDot} />
@@ -34,7 +42,9 @@ export default function App() {
             <View style={styles.kickerMark} />
             <Text style={[styles.kickerText, semibold]}>THE SIMPLE WAY TO PAY</Text>
           </View>
-          <Text style={[styles.title, bold]}>Pay the person.<Text style={styles.titleAccent}>{'\n'}Skip the bank form.</Text></Text>
+          <Text style={[styles.title, bold]}>
+            Pay the person.<Text style={styles.titleAccent}>{'\n'}Skip the bank form.</Text>
+          </Text>
           <Text style={[styles.body, regular]}>
             KLIKS is building a simpler way to pay anyone, using the bank you already have.
           </Text>

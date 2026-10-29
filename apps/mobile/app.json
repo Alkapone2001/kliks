@@ -4,14 +4,9 @@
     "slug": "kliks",
     "version": "0.1.0",
     "orientation": "portrait",
-    "platforms": [
-      "ios",
-      "android"
-    ],
+    "platforms": ["ios", "android"],
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "plugins": [
-      "expo-font"
-    ]
+    "plugins": ["expo-font"]
   }
 }
