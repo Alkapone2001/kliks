@@ -91,12 +91,13 @@ Report the completed phase, implemented work, test commands/results, architectur
 
 Update this section at the end of each project work session or approved task. Record the date, current approved phase, what changed, verification results, known blockers/risks, and the next action requiring approval. Keep the product and architecture rules above stable unless an accepted ADR is explicitly superseded.
 
-### 2026-10-29: Phase 1 foundation in progress
+### 2026-10-29: Phase 1 foundation complete
 
 - **Approved phase:** Phase 1, Foundation only. Phase 2 has not started.
 - **Repository start:** empty Git repository; no prior source files or ADRs. This file now preserves the attached product and engineering context.
 - **Implemented so far:** pnpm 12/Turbo monorepo; NestJS, Next.js, and Expo shells; shared packages; strict TypeScript, ESLint, and Prettier; local PostgreSQL/Redis Compose services; Prisma 7 config with intentionally empty schema; Money and Payment state model/tests; connector port and simulation-only Mock Bank; audit event types; `/health`; OpenAPI; CI; architecture docs and ADRs; setup guide.
-- **Verified so far:** dependency installation completed; formatting and lint passed before the final small config changes; strict typecheck passed; 27 unit tests passed; full build passed, including Prisma client generation, Next static build, and Android/iOS Expo bundle export.
-- **Remaining before phase completion:** rerun formatting/lint after the latest edits; validate Docker Compose configuration; smoke-test the API `/health` and OpenAPI route if the environment permits; inspect final worktree and update this log with final results.
-- **Known constraints:** no database domain models/migrations yet; no authentication, identity, payment endpoint/workflow, real bank/provider, or money movement. Docker daemon availability and live API smoke tests have not yet been confirmed.
-- **Next approval point:** after Phase 1 completion report, wait for explicit approval before Phase 2.
+- **Verified:** `pnpm install --frozen-lockfile`; `pnpm format:check`; `pnpm lint`; `pnpm typecheck`; `pnpm test` (27 tests passed); `pnpm build` (API, Next static build, Android/iOS Expo bundles, Prisma 7 client generation); `docker compose config --quiet`; live `GET /health`; live `/docs-json` with `/health`; web shell HTTP 200.
+- **Local preview:** web at `http://localhost:3000`; API at `http://localhost:3001`; API health at `/health`; Swagger UI at `/docs`. The API and web dev servers were started for preview.
+- **Not run:** Docker containers were not started; GitHub Actions was not executed on a hosted runner. Compose configuration was validated locally.
+- **Known constraints:** Prisma schema intentionally has no domain tables or migrations. There is no authentication, identity workflow, payment endpoint/workflow, real bank/provider, or money movement.
+- **Next approval point:** Phase 1 is complete. Stop here and wait for explicit approval before Phase 2.
