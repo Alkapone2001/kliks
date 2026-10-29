@@ -64,7 +64,11 @@ export function createPayment(input: NewPayment, now = new Date()): Payment {
   };
 }
 
-export function transitionPayment(payment: Payment, nextState: PaymentState, now = new Date()): Payment {
+export function transitionPayment(
+  payment: Payment,
+  nextState: PaymentState,
+  now = new Date(),
+): Payment {
   if (!allowedTransitions[payment.state].includes(nextState)) {
     throw new InvalidPaymentTransitionError(payment.state, nextState);
   }

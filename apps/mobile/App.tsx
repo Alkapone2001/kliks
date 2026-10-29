@@ -6,7 +6,9 @@ export default function App() {
     <View style={styles.screen}>
       <StatusBar style="dark" />
       <View style={styles.header}>
-        <Text style={styles.wordmark}>KLIKS<Text style={styles.wordmarkDot}>.</Text></Text>
+        <Text style={styles.wordmark}>
+          KLIKS<Text style={styles.wordmarkDot}>.</Text>
+        </Text>
         <Text style={styles.environment}>DEV PREVIEW</Text>
       </View>
 
@@ -32,7 +34,7 @@ export default function App() {
         </View>
       </View>
 
-      <Text style={styles.footer}>Veç kliko. U kry.  ·  Kosovo · EUR</Text>
+      <Text style={styles.footer}>Veç kliko. U kry. · Kosovo · EUR</Text>
     </View>
   );
 }

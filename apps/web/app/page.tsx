@@ -27,7 +27,9 @@ export default function Home() {
       </section>
 
       <section className="simulation-notice" aria-label="Simulation notice">
-        <span className="notice-symbol" aria-hidden="true">!</span>
+        <span className="notice-symbol" aria-hidden="true">
+          !
+        </span>
         <div>
           <strong>Simulation only</strong>
           <p>No payment has been made. Real banking and payment flows are not enabled.</p>
@@ -41,7 +43,12 @@ export default function Home() {
             <p className="eyebrow">SYSTEM BOUNDARIES</p>
             <h2 id="capability-title">What is available</h2>
           </div>
-          <a className="docs-link" href="http://localhost:3001/docs" target="_blank" rel="noreferrer">
+          <a
+            className="docs-link"
+            href="http://localhost:3001/docs"
+            target="_blank"
+            rel="noreferrer"
+          >
             API reference <span aria-hidden="true">↗</span>
           </a>
         </div>

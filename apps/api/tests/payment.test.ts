@@ -41,15 +41,17 @@ describe('payment state transitions', () => {
     expect(initial.state).toBe(initialState);
   });
 
-  it.each([PaymentState.Succeeded, PaymentState.Rejected, PaymentState.Failed, PaymentState.Cancelled])(
-    'treats %s as terminal',
-    (terminalState) => {
-      const initial = { ...payment(), state: terminalState };
-      for (const nextState of Object.values(PaymentState)) {
-        expect(() => transitionPayment(initial, nextState)).toThrow(InvalidPaymentTransitionError);
-      }
-    },
-  );
+  it.each([
+    PaymentState.Succeeded,
+    PaymentState.Rejected,
+    PaymentState.Failed,
+    PaymentState.Cancelled,
+  ])('treats %s as terminal', (terminalState) => {
+    const initial = { ...payment(), state: terminalState };
+    for (const nextState of Object.values(PaymentState)) {
+      expect(() => transitionPayment(initial, nextState)).toThrow(InvalidPaymentTransitionError);
+    }
+  });
 
   it('requires a positive amount', () => {
     expect(() =>

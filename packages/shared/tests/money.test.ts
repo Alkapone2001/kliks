@@ -29,7 +29,7 @@ describe('Money', () => {
   it('rejects mixed-currency arithmetic and negative subtraction results', () => {
     const euro = Money.fromMinor(100, 'EUR');
 
-    expect(() => euro.compareTo({ amountMinor: 100, currency: 'USD' } as Money)).toThrow(
+    expect(() => euro.compareTo({ amountMinor: 100, currency: 'USD' } as unknown as Money)).toThrow(
       'same currency',
     );
     expect(() => euro.subtract(Money.fromMinor(101, 'EUR'))).toThrow('negative amount');
