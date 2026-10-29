@@ -66,8 +66,8 @@ Never include credentials, access tokens, bank passwords, private signing keys, 
 Only one phase is authorized at a time. At each phase: inspect this plan, repository instructions, ADRs, and existing work; state the phase and concise plan; implement only that phase; run lint, typecheck, relevant tests, and build; fix introduced failures; update documentation and this handoff log; report; and stop. Never advance automatically. If a request conflicts with an accepted ADR, explain the conflict and propose a superseding ADR before changing the decision.
 
 0. **Repository context:** master plan, README, development rules, architecture docs, ADR directory.
-1. **Foundation (current approved phase):** pnpm/Turbo; NestJS, Next.js, Expo shells; PostgreSQL/Redis local services; Prisma package; strict TypeScript and lint/format; five API module boundaries; Money and Payment state model/tests; connector port and mock; audit foundation; health/OpenAPI; CI; architecture docs, ADRs, exact setup instructions. No authentication, real banking, QR, or merchant flows.
-2. **Identity:** user, normalized phone, unique username, development-only verification, endpoints/tests, privacy-aware lookup design. No production SMS or bank connection.
+1. **Foundation (complete):** pnpm/Turbo; NestJS, Next.js, Expo shells; PostgreSQL/Redis local services; Prisma package; strict TypeScript and lint/format; five API module boundaries; Money and Payment state model/tests; connector port and mock; audit foundation; health/OpenAPI; CI; architecture docs, ADRs, exact setup instructions. No authentication, real banking, QR, or merchant flows.
+2. **Identity (complete):** persisted user IDs, normalized Kosovo phone numbers, canonical unique usernames, development-only verification, API endpoints, and privacy-aware responses/tests. No production SMS, authentication, public lookup, or bank connection.
 3. **Mock bank connection:** linked-account model and simulated authorization, safe display, default/disconnect/status, audit/tests. No real bank.
 4. **Directory:** phone/username resolution, safe previews, enumeration resistance, privacy and recipient confirmation. Never expose bank details.
 5. **Core simulated payments:** creation, payer/payee validation, money, persistent idempotency, simulated authorization/processing/outcomes, history, audit, database transactions, integration and concurrency tests. Still simulated.
@@ -83,9 +83,9 @@ Only one phase is authorized at a time. At each phase: inspect this plan, reposi
 
 Do not implement cards, cryptocurrency, international transfers, customer wallet balances, real money movement, production deployment, or unapproved future product features.
 
-## Phase 1 completion contract
+## Phase completion contract
 
-Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 1, Foundation**.
+Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 2, Identity complete**; Phase 3 requires explicit approval.
 
 ## Handoff log
 
@@ -109,3 +109,14 @@ Update this section at the end of each project work session or approved task. Re
 - **Safety:** No send controls, balances, account connection, real provider, or payment claims were added. The future flow is labeled concept-only; the current simulation warning remains prominent.
 - **Verified:** `pnpm format:check`; `pnpm lint`; `pnpm typecheck`; `pnpm test` (27 passed); `pnpm build` including Next static output and Android/iOS exports. Browser checks returned HTTP 200 and confirmed no horizontal overflow at 390px mobile and 1440px desktop widths; simulation notice was visible on mobile.
 - **Next:** Phase 1 remains complete. Wait for explicit approval before starting Phase 2.
+
+### 2026-10-29: Phase 2 identity complete
+
+- **Approved phase:** Phase 2, Identity only. Phase 3 has not started.
+- **Implemented:** persisted users with generated UUIDs, unique normalized Kosovo E.164 phone numbers, case-canonical unique ASCII usernames, verified status, hashed single-use expiring development challenges, Nest identity endpoints/DTO validation, safe public identity responses, and a fail-closed environment guard. Added Prisma PostgreSQL adapter/client, migration, and database-backed integration tests.
+- **Privacy and safety:** no phone-number lookup endpoint; public responses never include phone numbers; no SMS is sent; development codes are returned only in explicit development mode and endpoints return 404 in production or when `NODE_ENV` is unset. No authentication or bank connection was added.
+- **Database:** local KLIKS Postgres runs on host port 5433 to avoid the existing service on 5432. The Phase 2 migration is applied. The ignored `.env` predates the port change and could not be edited by the file tool; `.env.example` and README use 5433. Update local `.env` accordingly before using database commands in a new shell.
+- **Verified:** `pnpm install --frozen-lockfile`; `pnpm format:check`; `pnpm lint`; `pnpm typecheck`; `pnpm test` (37 API tests plus 8 shared tests); `pnpm build`; `pnpm db:deploy`; live development create/verification HTTP flow; live production guard returned 404; API health returned `{ status: "ok", service: "api" }`.
+- **Local runtime:** API development preview is at `http://localhost:3001`; PostgreSQL is at `localhost:5433`. Docker services were used locally; GitHub Actions was not run on a hosted runner.
+- **Known constraints:** no production SMS, authentication, public directory lookup, bank connection, or payment workflow.
+- **Next approval point:** Phase 2 is complete. Stop and wait for explicit approval before Phase 3, Mock Bank Connection.

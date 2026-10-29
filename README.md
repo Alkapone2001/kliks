@@ -104,4 +104,4 @@ pnpm build
 - [Master product and engineering plan](docs/KLIKS_MASTER_PLAN.md)
 - [Architecture decision records](docs/decisions/README.md)
 
-The repository is currently at Phase 2, Identity. Do not start a later phase without explicit approval. Real bank/provider integration is prohibited until the external-dependency and regulatory gate described in the master plan is complete.
+Phase 2, Identity, is complete. Do not start Phase 3 without explicit approval. Real bank/provider integration is prohibited until the external-dependency and regulatory gate described in the master plan is complete.
