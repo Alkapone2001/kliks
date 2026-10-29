@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
+import '@fontsource-variable/space-grotesk';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'KLIKS | Foundation',
-  description: 'KLIKS development foundation. Payment flows are not enabled.',
+  title: 'KLIKS | Pay the person',
+  description: 'A simpler way to pay people, built around the bank you already use.',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

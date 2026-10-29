@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@expo-google-fonts/space-grotesk": "^0.4.1",
     "expo": "~58.0.21",
+    "expo-font": "~58.0.11",
     "expo-status-bar": "~58.0.3",
     "react": "19.3.0",
     "react-native": "0.88.0"

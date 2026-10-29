@@ -1,66 +1,101 @@
-const capabilities = [
-  { label: 'Payment initiation', status: 'Disabled', tone: 'muted' },
-  { label: 'Connected accounts', status: 'Not available', tone: 'muted' },
-  { label: 'Mock connector', status: 'Pending-only', tone: 'simulated' },
+const foundationItems = [
+  {
+    label: 'Money model',
+    detail: 'Euro amounts use exact minor units.',
+    status: 'READY',
+    tone: 'ready',
+  },
+  {
+    label: 'Mock Bank',
+    detail: 'A deterministic, pending-only simulation.',
+    status: 'SIMULATED',
+    tone: 'simulated',
+  },
+  {
+    label: 'Payment flows',
+    detail: 'No account connection or money movement.',
+    status: 'DISABLED',
+    tone: 'disabled',
+  },
 ] as const;
 
 export default function Home() {
   return (
-    <main className="workspace">
+    <main className="site-shell">
       <header className="topbar">
-        <a className="wordmark" href="/" aria-label="KLIKS foundation home">
-          KLIKS<span className="wordmark-dot">.</span>
+        <a className="brand" href="/" aria-label="KLIKS home">
+          <span className="brand-mark" aria-hidden="true">k</span>
+          <span className="brand-name">KLIKS<span>.</span></span>
         </a>
-        <div className="environment-label">
-          <span className="environment-mark" aria-hidden="true" />
-          DEVELOPMENT ENVIRONMENT
+        <div className="topbar-meta">
+          <span className="locale-label">KOSOVO <span>/</span> EUR</span>
+          <span className="preview-label"><span aria-hidden="true" /> PRIVATE PREVIEW</span>
         </div>
       </header>
 
-      <section className="intro" aria-labelledby="page-title">
-        <p className="eyebrow">PHASE 01 / FOUNDATION</p>
-        <h1 id="page-title">The payment layer starts here.</h1>
-        <p className="intro-copy">
-          KLIKS is building a simpler way to pay people and businesses from the bank accounts they
-          already use.
-        </p>
+      <section className="hero" aria-labelledby="page-title">
+        <div className="hero-copy">
+          <p className="eyebrow"><span className="eyebrow-mark" /> THE SIMPLE WAY TO PAY</p>
+          <h1 id="page-title">Pay the person.<br /><span>Skip the bank form.</span></h1>
+          <p className="hero-description">
+            KLIKS is building a simpler way to pay anyone, using the bank you already have.
+          </p>
+          <p className="hero-slogan">Veç kliko. U kry.</p>
+        </div>
+
+        <figure className="flow-visual" aria-labelledby="flow-caption">
+          <div className="flow-heading">
+            <span>THE FUTURE FLOW</span>
+            <span className="concept-label">CONCEPT ONLY</span>
+          </div>
+          <ol className="flow-list">
+            <li>
+              <span className="flow-index">01</span>
+              <span><strong>Find your person</strong><small>Verified identity</small></span>
+            </li>
+            <li>
+              <span className="flow-index">02</span>
+              <span><strong>Check the details</strong><small>Recipient + amount</small></span>
+            </li>
+            <li>
+              <span className="flow-index">03</span>
+              <span><strong>Authorize with your bank</strong><small>Nothing held by KLIKS</small></span>
+            </li>
+          </ol>
+          <figcaption id="flow-caption">Not active in this preview.</figcaption>
+        </figure>
       </section>
 
       <section className="simulation-notice" aria-label="Simulation notice">
-        <span className="notice-symbol" aria-hidden="true">
-          !
-        </span>
-        <div>
-          <strong>Simulation only</strong>
-          <p>No payment has been made. Real banking and payment flows are not enabled.</p>
+        <span className="notice-symbol" aria-hidden="true">!</span>
+        <div className="notice-copy">
+          <strong>Nothing moves in this preview.</strong>
+          <p>Payments are disabled. Mock Bank is for development tests only.</p>
         </div>
-        <span className="notice-tag">NO MONEY MOVES</span>
+        <span className="notice-stamp">SIMULATION ONLY</span>
       </section>
 
-      <section className="capability-section" aria-labelledby="capability-title">
+      <section className="foundation-section" aria-labelledby="foundation-title">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">SYSTEM BOUNDARIES</p>
-            <h2 id="capability-title">What is available</h2>
+            <p className="eyebrow">THE FOUNDATION</p>
+            <h2 id="foundation-title">What’s real right now</h2>
           </div>
-          <a
-            className="docs-link"
-            href="http://localhost:3001/docs"
-            target="_blank"
-            rel="noreferrer"
-          >
+          <a className="docs-link" href="http://localhost:3001/docs" target="_blank" rel="noreferrer">
             API reference <span aria-hidden="true">↗</span>
           </a>
         </div>
 
-        <ul className="capability-list">
-          {capabilities.map((capability, index) => (
-            <li className="capability-row" key={capability.label}>
+        <ul className="foundation-list">
+          {foundationItems.map((item, index) => (
+            <li className="foundation-row" key={item.label}>
               <span className="row-index">0{index + 1}</span>
-              <span className="capability-name">{capability.label}</span>
-              <span className={`capability-status ${capability.tone}`}>
-                <span aria-hidden="true" />
-                {capability.status}
+              <span className="row-main">
+                <strong>{item.label}</strong>
+                <small>{item.detail}</small>
+              </span>
+              <span className={`row-status ${item.tone}`}>
+                <span aria-hidden="true" />{item.status}
               </span>
             </li>
           ))}
@@ -68,8 +103,8 @@ export default function Home() {
       </section>
 
       <footer className="footer">
-        <span>Veç kliko. U kry.</span>
-        <span>Kosovo · EUR</span>
+        <span>KLIKS never holds your balance.</span>
+        <span>Built for Kosovo <span className="footer-dot">·</span> EUR</span>
       </footer>
     </main>
   );
