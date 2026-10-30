@@ -32,7 +32,7 @@ jobs:
           test -n "$DEMO_SSH_KEY"
           test -n "$DEMO_KNOWN_HOSTS"
           install -d -m 700 ~/.ssh
-          printf '%s\n' "$DEMO_SSH_KEY" > ~/.ssh/demo_key
+          printf '%s\n' "$DEMO_SSH_KEY" | tr -d '\r' > ~/.ssh/demo_key
           chmod 600 ~/.ssh/demo_key
           printf '%s\n' "$DEMO_KNOWN_HOSTS" > ~/.ssh/known_hosts
           trap 'rm -f ~/.ssh/demo_key' EXIT
