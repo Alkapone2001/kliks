@@ -171,3 +171,21 @@ Update this section at the end of each project work session or approved task. Re
 - **Verified:** Expo SDK check (`react-native@0.88.1`); `pnpm format:check`; `pnpm lint`; `pnpm typecheck`; `pnpm test` (60 API tests plus 8 shared tests); `pnpm build` including Android and iOS Expo exports. A physical-device/emulator interaction session was not run.
 - **Local preview:** API at `http://localhost:3001`; Expo Metro at `exp://192.168.1.7:8081`. Configure `EXPO_PUBLIC_API_URL` for physical devices as described in README.
 - **Next approval point:** Phase 6 is complete. Stop and wait for explicit approval before Phase 7, Payment Requests.
+
+### 2026-10-30: Personal iOS LAN preview
+
+- **Deployment:** none; the phone connects directly to the development machine over the same Wi-Fi.
+- **Current endpoints:** Expo Metro `exp://192.168.1.7:8082`; API `http://192.168.1.7:3006`; Postgres remains local on `localhost:5433`.
+- **API base:** Expo started with `EXPO_PUBLIC_API_URL=http://192.168.1.7:3006` so the phone does not call its own localhost.
+- **Verified:** API `/health` and Expo Metro `/status` returned HTTP 200 on the LAN address. The iPhone has not yet been confirmed connected; scan the Expo QR in Expo Go while on the same Wi-Fi.
+- **Note:** LAN IP/ports may change. Recheck `Get-NetIPConfiguration` and allow Node/ports on the Windows private network if the phone cannot connect.
+
+### 2026-10-30: Approved Phase 6 browser MVP companion
+
+- **Approval:** user prioritized a usable browser MVP before Payment Requests. This extends the Phase 6 preview; Phase 7 remains unstarted and requires separate approval.
+- **Implemented:** replaced the web placeholder with development identity creation/verification, saved local identity selection, explicit two-identity test setup, bank connection/authorization/rejection/default/disconnect, directory opt-in/out, recipient lookup, exact EUR input/review, simulated authorization/outcomes, results, resumable authorization, and participant activity.
+- **Connection:** `http://localhost:3000` forwards `/api/*` to the API on port 3001 by default; `API_URL` overrides that server-side destination. No CORS or phone LAN setup is needed for PC testing.
+- **Safety:** development sign-in is not production authentication. Every payment screen shows simulation status; no real bank, funds, credentials, or wallet balance. Local storage contains only identity IDs/usernames and the active ID. No new backend capabilities or future-phase features were introduced.
+- **Verified:** web lint, strict typecheck, production build, and 12 focused amount/storage tests; browser interaction checks for manual verification, test-pair setup, all bank controls, successful/pending/insufficient-funds/provider-failure/rejected payments, recipient-side history, reload restoration, and lost-response creation retry with the same idempotency key and one persisted payment. Responsive checks at 1440/768/390/320 pixels found no horizontal overflow or broken icons.
+- **Still unverified:** physical iPhone interaction and production authentication. iPhone LAN access was set aside at the user's request; it is not required for this browser preview.
+- **Next gate:** stop before Phase 7 and wait for explicit approval.

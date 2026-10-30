@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import '@fontsource-variable/space-grotesk';
-import './globals.css';
+import './workspace.css';
 
 export const metadata: Metadata = {
   title: 'KLIKS | Pay the person',

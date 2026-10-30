@@ -6,6 +6,7 @@
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "lint": "eslint app next.config.ts",
+    "test": "vitest run app/payment-utils.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
