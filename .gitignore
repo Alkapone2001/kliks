@@ -9,6 +9,7 @@ expo-env.d.ts
 web-build/
 apps/mobile/ios/
 apps/mobile/android/
+apps/mobile/.expo/
 packages/database/src/generated/
 .env
 .env.*

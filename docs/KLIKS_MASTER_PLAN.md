@@ -71,7 +71,7 @@ Only one phase is authorized at a time. At each phase: inspect this plan, reposi
 3. **Mock bank connection (complete):** linked-account model and simulated authorization, safe display, default/disconnect/status, audit/tests. No real bank.
 4. **Directory (complete):** phone/username resolution to safe previews, explicit privacy opt-in, generic misses, rate limiting, and recipient confirmation. Never expose phone or bank details.
 5. **Core simulated payments (complete):** creation, payer/payee validation, money, persistent idempotency, simulated authorization/processing/outcomes, history, audit, database transactions, integration and concurrency tests. Still simulated.
-6. **Mobile MVP:** development identity, home/send/review, mock authorization, result/history, visible simulation warning.
+6. **Mobile MVP (complete):** development identity, home/send/review, mock authorization, success/failure result, activity history, visible simulation warning.
 7. **Payment requests:** create/view/accept/reject/cancel/status and simulated payment, audit/tests.
 8. **QR payments:** opaque safe payloads, generation/scanning, server resolution, recipient/amount confirmation, expiry/replay protection.
 9. **Split bills:** participants, equal/custom amounts, consistency, requests/status/cancellation.
@@ -85,7 +85,7 @@ Do not implement cards, cryptocurrency, international transfers, customer wallet
 
 ## Phase completion contract
 
-Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 5, Core Simulated Payments complete**; Phase 6 requires explicit approval.
+Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 6, Mobile MVP complete**; Phase 7 requires explicit approval.
 
 ## Handoff log
 
@@ -161,3 +161,13 @@ Update this section at the end of each project work session or approved task. Re
 - **Verified locally:** frozen install; database deploy; format, lint, strict typecheck; 60 API + 8 shared tests; full build all pass.
 - **Remote status:** commit `3f2458f` completed GitHub Actions run `41031176464` successfully. Hosted install, migrations, formatting, lint, typecheck, tests, and build all passed.
 - **Phase gate:** Phase 5 remains complete. Phase 6 has not started and requires explicit approval.
+
+### 2026-10-30: Phase 6 Mobile MVP complete
+
+- **Approved phase:** Phase 6 only. Phase 7, Payment Requests, has not started.
+- **Implemented:** mobile development identity creation/verification, local development identity persistence, home screen with directory visibility and Mock Bank account management, recipient lookup by opted-in phone/username, EUR amount entry in integer minor units, review, simulated Mock Bank authorization/outcome, results, and participant activity history.
+- **Safety:** every payment screen labels the flow simulated; no wallet balance or real payment is represented. Local storage contains only the development identity ID and username, not phone number, credentials, or account references. Payer directory opt-in is not required to pay; only the recipient must be discoverable.
+- **API configuration:** iOS simulator defaults to `localhost:3001`; Android emulator defaults to `10.0.2.2:3001`. Physical devices can set `EXPO_PUBLIC_API_URL` to the reachable API host.
+- **Verified:** Expo SDK check (`react-native@0.88.1`); `pnpm format:check`; `pnpm lint`; `pnpm typecheck`; `pnpm test` (60 API tests plus 8 shared tests); `pnpm build` including Android and iOS Expo exports. A physical-device/emulator interaction session was not run.
+- **Local preview:** API at `http://localhost:3001`; Expo Metro at `exp://192.168.1.7:8081`. Configure `EXPO_PUBLIC_API_URL` for physical devices as described in README.
+- **Next approval point:** Phase 6 is complete. Stop and wait for explicit approval before Phase 7, Payment Requests.

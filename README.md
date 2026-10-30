@@ -82,6 +82,10 @@ pnpm --filter @kliks/mobile dev
 
 Use the Expo terminal prompt to open the mobile shell in a compatible emulator or device. The root command `pnpm dev` starts all app development servers together.
 
+The mobile app defaults to `http://localhost:3001` on iOS simulators and `http://10.0.2.2:3001` on Android emulators. For a physical device, set `EXPO_PUBLIC_API_URL` to the API host's LAN address before starting Expo, for example `$env:EXPO_PUBLIC_API_URL='http://192.168.1.20:3001'` in PowerShell. Ensure the API port is reachable from the device.
+
+The mobile app defaults to `http://localhost:3001` on iOS simulators and `http://10.0.2.2:3001` on Android emulators. For a physical device, set `EXPO_PUBLIC_API_URL` to the API host's LAN address before starting Expo, for example `$env:EXPO_PUBLIC_API_URL='http://192.168.1.20:3001'` in PowerShell. Ensure the API port is reachable from the device.
+
 ### Development identity
 
 Identity endpoints are available only when `NODE_ENV` is explicitly `development` or `test`; the API dev script sets `development`, and unset or production environments return 404. `POST /identity/users` creates an identity; `POST /identity/users/{id}/phone-verification` starts a simulated challenge and returns a development code; `POST /identity/users/{id}/phone-verification/confirm` confirms it. No SMS is sent. Responses never include the phone number, and there is no public phone-number lookup endpoint. Use synthetic data only.
@@ -97,6 +101,8 @@ Directory routes are development/test-only until authentication exists. New iden
 ### Simulated payments
 
 Payment routes are development/test-only. `POST /payments` takes verified internal `payerId` and opted-in `payeeId`, positive `amountMinor`, `currency` (`EUR`), and a payer-scoped `idempotencyKey`. The payer and recipient must each have a connected default Mock Bank account. Exact retries return the original payment; reusing the key with different request data returns `409`. `POST /payments/{id}/authorize` takes `payerId`, `decision` (`APPROVE` or `REJECT`), and optional mock `outcome` (`SUCCESS`, `PENDING`, `INSUFFICIENT_FUNDS`, `PROVIDER_FAILURE`). `GET /payments?userId=<uuid>` returns participant history. Every result is marked `simulation: true`; no real funds move and bank references are omitted.
+
+The mobile MVP connects these APIs: development identity and simulated verification, recipient selection by opted-in phone/username, EUR amount and review, Mock Bank authorization, simulated result, and activity history. It stores only the development identity ID and username locally. It does not store a phone number, credentials, or balance.
 
 ## Quality checks
 
@@ -114,8 +120,4 @@ pnpm build
 
 ## Architecture and scope
 
-- [Architecture overview](docs/architecture/README.md)
-- [Master product and engineering plan](docs/KLIKS_MASTER_PLAN.md)
-- [Architecture decision records](docs/decisions/README.md)
-
-Phase 5, Core Simulated Payments, is complete. Do not start Phase 6 without explicit approval. Real bank/provider integration is prohibited until the external-dependency and regulatory gate described in the master plan is complete.
+Phase 6, Mobile MVP, is complete. Do not start Phase 7 without explicit approval. Real bank/provider integration is prohibited until the external-dependency and regulatory gate described in the master plan is complete.

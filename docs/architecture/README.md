@@ -46,6 +46,8 @@ PostgreSQL is the source of truth; Prisma models identity, verification challeng
 
 Mock Bank is a development/test connector, not financial infrastructure. Web and mobile shells visibly state that payment flows are disabled and no money moves. Do not remove that warning while the mock is active.
 
+The mobile MVP connects development identity, directory opt-in, Mock Bank account linking, recipient/amount review, simulated authorization/outcomes, and activity history. It stores only the development identity ID and username locally; no phone number, credentials, or balance is persisted on-device. Every payment remains explicitly simulated.
+
 ## External approval gate
 
 Before any real bank/provider implementation, prepare the external-dependency package covering product and data flows, proposed operating responsibilities, security assumptions, exact CBK and institution questions, required API/sandbox capabilities, and unresolved legal and operational risks. Do not infer regulatory approval or invent provider behavior.
