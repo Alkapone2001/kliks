@@ -7,6 +7,13 @@ datasource db {
   provider = "postgresql"
 }
 
+enum LinkedBankAccountStatus {
+  PENDING_AUTHORIZATION
+  CONNECTED
+  REJECTED
+  DISCONNECTED
+}
+
 model User {
   id                  String                      @id @default(uuid()) @db.Uuid
   phoneNumber         String                      @unique @map("phone_number") @db.VarChar(16)
@@ -15,6 +22,7 @@ model User {
   createdAt           DateTime                    @default(now()) @map("created_at")
   updatedAt           DateTime                    @updatedAt @map("updated_at")
   verificationChallenges PhoneVerificationChallenge[]
+  linkedBankAccounts     LinkedBankAccount[]
 
   @@map("users")
 }
@@ -31,4 +39,33 @@ model PhoneVerificationChallenge {
 
   @@index([userId, expiresAt])
   @@map("phone_verification_challenges")
+}
+
+model LinkedBankAccount {
+  id                         String                  @id @default(uuid()) @db.Uuid
+  userId                     String                  @map("user_id") @db.Uuid
+  connectorId                String                  @map("connector_id") @db.VarChar(40)
+  providerAccountReference   String                  @unique @map("provider_account_reference") @db.VarChar(100)
+  displayName                String                  @map("display_name") @db.VarChar(80)
+  connectionStatus           LinkedBankAccountStatus @default(PENDING_AUTHORIZATION) @map("connection_status")
+  isDefault                  Boolean                 @default(false) @map("is_default")
+  createdAt                  DateTime                @default(now()) @map("created_at")
+  updatedAt                  DateTime                @updatedAt @map("updated_at")
+  user                       User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, connectionStatus])
+  @@index([userId, createdAt])
+  @@map("linked_bank_accounts")
+}
+
+model AuditEventRecord {
+  id         String   @id @default(uuid()) @db.Uuid
+  eventType  String   @map("event_type") @db.VarChar(64)
+  entityId   String   @map("entity_id") @db.VarChar(64)
+  occurredAt DateTime @default(now()) @map("occurred_at")
+  metadata   Json
+
+  @@index([entityId, occurredAt])
+  @@index([eventType, occurredAt])
+  @@map("audit_events")
 }

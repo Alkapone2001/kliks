@@ -84,6 +84,10 @@ Use the Expo terminal prompt to open the mobile shell in a compatible emulator o
 
 Identity endpoints are available only when `NODE_ENV` is explicitly `development` or `test`; the API dev script sets `development`, and unset or production environments return 404. `POST /identity/users` creates an identity; `POST /identity/users/{id}/phone-verification` starts a simulated challenge and returns a development code; `POST /identity/users/{id}/phone-verification/confirm` confirms it. No SMS is sent. Responses never include the phone number, and there is no public phone-number lookup endpoint. Use synthetic data only.
 
+### Mock Bank connection
+
+Mock Bank account endpoints use the same development/test-only guard and require a verified development identity. `POST /banking/accounts` starts a pending simulated connection with `{ "userId": "<uuid>" }`. `POST /banking/accounts/{id}/authorize` takes `userId` and `decision` (`APPROVE` or `REJECT`). `GET /banking/accounts?userId=<uuid>` returns safe display/status information only. `POST /banking/accounts/{id}/default` and `POST /banking/accounts/{id}/disconnect` take `userId`. Every response is marked `simulation: true`; provider references are never returned. No real bank is contacted.
+
 ## Quality checks
 
 Run from the repository root:
@@ -104,4 +108,4 @@ pnpm build
 - [Master product and engineering plan](docs/KLIKS_MASTER_PLAN.md)
 - [Architecture decision records](docs/decisions/README.md)
 
-Phase 2, Identity, is complete. Do not start Phase 3 without explicit approval. Real bank/provider integration is prohibited until the external-dependency and regulatory gate described in the master plan is complete.
+Phase 3, Mock Bank Connection, is complete. Do not start Phase 4 without explicit approval. Real bank/provider integration is prohibited until the external-dependency and regulatory gate described in the master plan is complete.

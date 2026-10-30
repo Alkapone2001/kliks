@@ -68,7 +68,7 @@ Only one phase is authorized at a time. At each phase: inspect this plan, reposi
 0. **Repository context:** master plan, README, development rules, architecture docs, ADR directory.
 1. **Foundation (complete):** pnpm/Turbo; NestJS, Next.js, Expo shells; PostgreSQL/Redis local services; Prisma package; strict TypeScript and lint/format; five API module boundaries; Money and Payment state model/tests; connector port and mock; audit foundation; health/OpenAPI; CI; architecture docs, ADRs, exact setup instructions. No authentication, real banking, QR, or merchant flows.
 2. **Identity (complete):** persisted user IDs, normalized Kosovo phone numbers, canonical unique usernames, development-only verification, API endpoints, and privacy-aware responses/tests. No production SMS, authentication, public lookup, or bank connection.
-3. **Mock bank connection:** linked-account model and simulated authorization, safe display, default/disconnect/status, audit/tests. No real bank.
+3. **Mock bank connection (complete):** linked-account model and simulated authorization, safe display, default/disconnect/status, audit/tests. No real bank.
 4. **Directory:** phone/username resolution, safe previews, enumeration resistance, privacy and recipient confirmation. Never expose bank details.
 5. **Core simulated payments:** creation, payer/payee validation, money, persistent idempotency, simulated authorization/processing/outcomes, history, audit, database transactions, integration and concurrency tests. Still simulated.
 6. **Mobile MVP:** development identity, home/send/review, mock authorization, result/history, visible simulation warning.
@@ -85,7 +85,7 @@ Do not implement cards, cryptocurrency, international transfers, customer wallet
 
 ## Phase completion contract
 
-Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 2, Identity complete**; Phase 3 requires explicit approval.
+Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 3, Mock Bank Connection complete**; Phase 4 requires explicit approval.
 
 ## Handoff log
 
@@ -120,3 +120,14 @@ Update this section at the end of each project work session or approved task. Re
 - **Local runtime:** API development preview is at `http://localhost:3001`; PostgreSQL is at `localhost:5433`. Docker services were used locally; GitHub Actions was not run on a hosted runner.
 - **Known constraints:** no production SMS, authentication, public directory lookup, bank connection, or payment workflow.
 - **Next approval point:** Phase 2 is complete. Stop and wait for explicit approval before Phase 3, Mock Bank Connection.
+
+### 2026-10-29: Phase 3 Mock Bank Connection complete
+
+- **Approved phase:** Phase 3 only. Phase 4, Directory, has not started.
+- **Implemented:** persisted linked accounts with pending authorization, connected, rejected, and disconnected states; Mock Bank connect/approve/reject/disconnect adapter methods; development-only API routes to connect, authorize, list, set default, and disconnect; account operations require a verified development identity; default selection and disconnect state changes use database transactions.
+- **Audit:** connection started/succeeded/failed/disconnected and default-changed events are persisted append-only in PostgreSQL in the same transactions as state changes. Audit metadata is limited to safe connector/status/simulation fields.
+- **Privacy and safety:** every account response carries `simulation: true`; returns only generic `Mock Bank Demo Account` display data and never exposes provider references or real-looking account numbers. No real bank, credential collection, SMS, authentication, payment initiation, or money movement was added. The existing UI continues to visibly mark Mock Bank as simulated.
+- **Verified:** Prisma generation and migration; `pnpm format:check`; `pnpm lint`; `pnpm typecheck`; `pnpm test` (42 API tests plus 8 shared tests); `pnpm build`; live HTTP lifecycle pending -> connected -> default -> disconnected; API health and OpenAPI routes.
+- **Local runtime:** API development preview at `http://localhost:3001`; PostgreSQL at `localhost:5433`. The synthetic HTTP test user and its audit records were removed. The local ignored `.env` may still need port 5433 as described above.
+- **Known constraints:** no production authentication or real bank; user IDs are supplied by the development client and must not be used as authorization in a production context. All banking connection routes fail closed outside `development`/`test`.
+- **Next approval point:** Phase 3 is complete. Stop and wait for explicit approval before Phase 4, Directory.

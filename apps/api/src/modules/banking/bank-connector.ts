@@ -6,6 +6,31 @@ export interface PaymentInitiationRequest {
   amount: Money;
 }
 
+export type MockAuthorizationDecision = 'APPROVE' | 'REJECT';
+
+export interface ConnectAccountRequest {
+  connectionId: string;
+}
+
+export interface ConnectAccountResult {
+  providerAccountReference: string;
+  displayName: string;
+  status: 'PENDING_AUTHORIZATION';
+  simulation: true;
+}
+
+export interface AccountAuthorizationResult {
+  providerAccountReference: string;
+  status: 'CONNECTED' | 'REJECTED';
+  simulation: true;
+}
+
+export interface AccountDisconnectionResult {
+  providerAccountReference: string;
+  status: 'DISCONNECTED';
+  simulation: true;
+}
+
 export interface PaymentInitiationResult {
   providerReference: string;
   status: 'PENDING';
@@ -19,6 +44,12 @@ export interface ProviderPaymentStatus {
 }
 
 export interface BankConnector {
+  connectAccount(request: ConnectAccountRequest): Promise<ConnectAccountResult>;
+  authorizeAccount(
+    providerAccountReference: string,
+    decision: MockAuthorizationDecision,
+  ): Promise<AccountAuthorizationResult>;
+  disconnectAccount(providerAccountReference: string): Promise<AccountDisconnectionResult>;
   initiatePayment(request: PaymentInitiationRequest): Promise<PaymentInitiationResult>;
   getPaymentStatus(providerReference: string): Promise<ProviderPaymentStatus>;
 }
