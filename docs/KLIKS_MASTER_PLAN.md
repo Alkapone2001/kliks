@@ -69,7 +69,7 @@ Only one phase is authorized at a time. At each phase: inspect this plan, reposi
 1. **Foundation (complete):** pnpm/Turbo; NestJS, Next.js, Expo shells; PostgreSQL/Redis local services; Prisma package; strict TypeScript and lint/format; five API module boundaries; Money and Payment state model/tests; connector port and mock; audit foundation; health/OpenAPI; CI; architecture docs, ADRs, exact setup instructions. No authentication, real banking, QR, or merchant flows.
 2. **Identity (complete):** persisted user IDs, normalized Kosovo phone numbers, canonical unique usernames, development-only verification, API endpoints, and privacy-aware responses/tests. No production SMS, authentication, public lookup, or bank connection.
 3. **Mock bank connection (complete):** linked-account model and simulated authorization, safe display, default/disconnect/status, audit/tests. No real bank.
-4. **Directory:** phone/username resolution, safe previews, enumeration resistance, privacy and recipient confirmation. Never expose bank details.
+4. **Directory (complete):** phone/username resolution to safe previews, explicit privacy opt-in, generic misses, rate limiting, and recipient confirmation. Never expose phone or bank details.
 5. **Core simulated payments:** creation, payer/payee validation, money, persistent idempotency, simulated authorization/processing/outcomes, history, audit, database transactions, integration and concurrency tests. Still simulated.
 6. **Mobile MVP:** development identity, home/send/review, mock authorization, result/history, visible simulation warning.
 7. **Payment requests:** create/view/accept/reject/cancel/status and simulated payment, audit/tests.
@@ -85,7 +85,7 @@ Do not implement cards, cryptocurrency, international transfers, customer wallet
 
 ## Phase completion contract
 
-Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 3, Mock Bank Connection complete**; Phase 4 requires explicit approval.
+Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 4, Directory complete**; Phase 5 requires explicit approval.
 
 ## Handoff log
 
@@ -131,3 +131,13 @@ Update this section at the end of each project work session or approved task. Re
 - **Local runtime:** API development preview at `http://localhost:3001`; PostgreSQL at `localhost:5433`. The synthetic HTTP test user and its audit records were removed. The local ignored `.env` may still need port 5433 as described above.
 - **Known constraints:** no production authentication or real bank; user IDs are supplied by the development client and must not be used as authorization in a production context. All banking connection routes fail closed outside `development`/`test`.
 - **Next approval point:** Phase 3 is complete. Stop and wait for explicit approval before Phase 4, Directory.
+
+### 2026-10-30: Phase 4 Directory complete
+
+- **Approved phase:** Phase 4 only. Phase 5, Core Simulated Payments, has not started.
+- **Implemented:** opt-in directory visibility (default private), verified-phone requirement for enabling visibility, normalized Kosovo phone and canonical username resolution, safe recipient previews, generic misses for unknown/malformed/unlisted recipients, immediate opt-out, and transactional visibility audit events.
+- **Enumeration/privacy controls:** resolution endpoints are development/test-only and limited to 30 requests per IP per minute using an in-process fixed-window guard. This is intentionally not a production/distributed abuse-control mechanism. No phone number, linked account, provider reference, or bank destination is returned.
+- **Verified:** Prisma generation and migration; `pnpm install --frozen-lockfile`; `pnpm format:check`; `pnpm lint`; `pnpm typecheck`; `pnpm test` (49 API tests plus 8 shared tests); `pnpm build`; `pnpm db:deploy`; live opt-in/phone/username/opt-out flow; live HTTP 429 after repeated lookup requests.
+- **Local runtime:** API smoke-tested at `http://localhost:3003`; PostgreSQL at `localhost:5433`. Synthetic smoke identities and visibility audit rows were removed. The main preview API port 3001 is occupied by a stale listener; do not stop an unidentified process.
+- **Known constraints:** no authentication exists yet, so Directory remains dev/test-only. The in-memory throttle resets on process restart and is unsuitable for production or multiple replicas.
+- **Next approval point:** Phase 4 is complete. Stop and wait for explicit approval before Phase 5, Core Simulated Payments.

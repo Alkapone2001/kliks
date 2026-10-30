@@ -20,6 +20,8 @@ Identity persists internal IDs, normalized Kosovo phone numbers, canonical usern
 
 Banking persists linked accounts with explicit pending, connected, rejected, and disconnected states. The development-only Mock Bank flow requires a verified development identity; authorization is simulated, safe account display data is returned, and users can choose a default or disconnect an account. There is no authentication or production bank connection.
 
+Directory visibility is opt-in and defaults to private. Only phone-verified, explicitly listed identities can be resolved by normalized Kosovo phone number or canonical username. Phone and bank-account details are omitted; unknown, invalid, and unlisted queries share one not-found result. Lookup routes are development/test-only and rate-limited per IP in-process. Production access requires a reviewed authentication and abuse-control design.
+
 ## Money and payment safety
 
 Money is represented as an integer number of minor units plus an explicit currency. JavaScript floating-point values are not authoritative. The initial supported currency is EUR; mixed-currency arithmetic and negative amounts are rejected.
@@ -38,7 +40,7 @@ Do not implement a real connector until authentic provider documentation and san
 
 ## Data and local infrastructure
 
-PostgreSQL is the source of truth; Prisma models identity, verification challenges, linked bank accounts, and append-only audit events in `packages/database`. Redis is available for local development only and is not an authoritative store for payment state. Docker ports bind to loopback and use development-only credentials.
+PostgreSQL is the source of truth; Prisma models identity, verification challenges, directory opt-in, linked bank accounts, and append-only audit events in `packages/database`. Directory visibility changes are audited transactionally. Redis is available for local development only and is not an authoritative store for payment state. Docker ports bind to loopback and use development-only credentials.
 
 ## Simulation status
 

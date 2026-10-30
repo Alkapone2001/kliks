@@ -88,6 +88,10 @@ Identity endpoints are available only when `NODE_ENV` is explicitly `development
 
 Mock Bank account endpoints use the same development/test-only guard and require a verified development identity. `POST /banking/accounts` starts a pending simulated connection with `{ "userId": "<uuid>" }`. `POST /banking/accounts/{id}/authorize` takes `userId` and `decision` (`APPROVE` or `REJECT`). `GET /banking/accounts?userId=<uuid>` returns safe display/status information only. `POST /banking/accounts/{id}/default` and `POST /banking/accounts/{id}/disconnect` take `userId`. Every response is marked `simulation: true`; provider references are never returned. No real bank is contacted.
 
+### Development directory
+
+Directory routes are development/test-only until authentication exists. New identities are private by default. `POST /directory/visibility` takes `{ "userId": "<uuid>", "enabled": true }`; enabling requires verified phone status and opt-out is immediate. `POST /directory/resolve/phone` takes `{ "phoneNumber": "044..." }`; `POST /directory/resolve/username` takes `{ "username": "..." }`. Successful responses include only the internal recipient ID, canonical username, verified status, and creation time. Unknown, malformed, or unlisted recipients all return the same 404. Phone numbers and linked-bank details are never returned. Directory requests are limited to 30 per IP per minute in the current API process; this in-memory guard is development-only, not a production/distributed abuse control.
+
 ## Quality checks
 
 Run from the repository root:
@@ -108,4 +112,4 @@ pnpm build
 - [Master product and engineering plan](docs/KLIKS_MASTER_PLAN.md)
 - [Architecture decision records](docs/decisions/README.md)
 
-Phase 3, Mock Bank Connection, is complete. Do not start Phase 4 without explicit approval. Real bank/provider integration is prohibited until the external-dependency and regulatory gate described in the master plan is complete.
+Phase 4, Directory, is complete. Do not start Phase 5 without explicit approval. Real bank/provider integration is prohibited until the external-dependency and regulatory gate described in the master plan is complete.

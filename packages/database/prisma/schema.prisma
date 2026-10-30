@@ -19,6 +19,7 @@ model User {
   phoneNumber         String                      @unique @map("phone_number") @db.VarChar(16)
   username            String                      @unique @db.VarChar(30)
   phoneVerifiedAt     DateTime?                   @map("phone_verified_at")
+  directoryListingEnabled Boolean                  @default(false) @map("directory_listing_enabled")
   createdAt           DateTime                    @default(now()) @map("created_at")
   updatedAt           DateTime                    @updatedAt @map("updated_at")
   verificationChallenges PhoneVerificationChallenge[]
