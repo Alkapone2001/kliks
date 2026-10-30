@@ -6,6 +6,8 @@ KLIKS is a proposed payment interaction layer for Kosovo: connect people to thei
 
 > **Development simulation only.** The current Mock Bank connector never contacts a financial institution. No payment has been made by using this project.
 
+For the hosted demo, Droplet connection details, cross-device setup and the **feature branch -> PR -> merge to main -> CI -> live demo** workflow, see the [deployment and connection runbook](deploy/README.md#connect-from-any-computer). No server password or private key is stored in this repository; ordinary development/deployment needs GitHub access only.
+
 ## Prerequisites
 
 - Node.js 22.13 or newer (Node 24 LTS or newer recommended).
