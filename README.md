@@ -57,6 +57,8 @@ pnpm db:migrate
 
 `pnpm db:migrate` creates/applies local migrations; `pnpm db:deploy` applies committed migrations in CI. PostgreSQL remains the source of truth; Redis is not a payment datastore.
 
+The root `pnpm dev`, `pnpm typecheck`, `pnpm test`, and `pnpm build` scripts generate the Prisma client before running Turbo tasks.
+
 ## Run applications
 
 Run each application in its own terminal from the repository root:

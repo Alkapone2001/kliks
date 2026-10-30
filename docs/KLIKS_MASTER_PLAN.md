@@ -153,3 +153,11 @@ Update this section at the end of each project work session or approved task. Re
 - **Database note:** local test environment must set `DATABASE_URL` to KLIKS Postgres on port 5433; the ignored `.env` may still point to the existing service on port 5432.
 - **Known constraints:** no production authentication, provider, reconciliation, or mobile payment workflow. Payment endpoints remain dev/test-only.
 - **Next approval point:** Phase 5 is complete. Stop and wait for explicit approval before Phase 6, Mobile MVP.
+
+### 2026-10-30: GitHub Actions Prisma typecheck fix
+
+- **Observed failure:** GitHub Actions run `41027640720` failed at Typecheck with `Cannot find module './generated/client/client.js'` from `packages/database/src/index.ts`; install, migrations, formatting, and lint passed.
+- **Fix:** root dev/build/typecheck/test scripts now run `pnpm db:generate` before Turbo scheduling. `@kliks/database` build now compiles generated sources without rerunning Prisma generation concurrently with its typecheck.
+- **Verified locally:** frozen install; database deploy; format, lint, strict typecheck; 60 API + 8 shared tests; full build all pass.
+- **Remote status:** commit `3f2458f` completed GitHub Actions run `41031176464` successfully. Hosted install, migrations, formatting, lint, typecheck, tests, and build all passed.
+- **Phase gate:** Phase 5 remains complete. Phase 6 has not started and requires explicit approval.
