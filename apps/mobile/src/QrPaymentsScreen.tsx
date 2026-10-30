@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Image, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { parseQrPaymentPayload } from '@kliks/shared';
+import { parseMerchantQrPayload, parseQrPaymentPayload } from '@kliks/shared';
 import type { Payment } from './App';
 
 type Api = <T>(path: string, method?: string, body?: unknown) => Promise<T>;
@@ -23,6 +23,8 @@ interface Code extends Session {
   imageDataUrl: string;
 }
 interface Preview {
+  merchant?: { id: string; displayName: string } | null;
+  payload?: string;
   id: string;
   recipient: Recipient;
   amountMinor: number | null;
@@ -92,6 +94,7 @@ export default function QrPaymentsScreen({
   const inFlight = useRef(false);
   const scanned = useRef(false);
   const key = useRef<{ fingerprint: string; key: string } | null>(null);
+  const checkoutKey = useRef<{ payload: string; key: string } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -155,13 +158,24 @@ export default function QrPaymentsScreen({
     setReviewing(false);
     setPreview(null);
     await run(async () => {
-      if (!parseQrPaymentPayload(value))
+      const merchantId = parseMerchantQrPayload(value);
+      if (!parseQrPaymentPayload(value) && !merchantId)
         throw new Error('Unsupported QR code. Only KLIKS payment codes are accepted.');
-      const result = await api<Preview>('/qr-payments/resolve', 'POST', {
-        payerId: identity.id,
-        payload: value,
-      });
-      setPayload(value);
+      if (merchantId && checkoutKey.current?.payload !== value)
+        checkoutKey.current = {
+          payload: value,
+          key: `mobile-checkout-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 14)}`,
+        };
+      const result = await api<Preview>(
+        merchantId ? '/merchants/checkout' : '/qr-payments/resolve',
+        'POST',
+        {
+          payerId: identity.id,
+          payload: value,
+          ...(merchantId ? { idempotencyKey: checkoutKey.current?.key } : {}),
+        },
+      );
+      setPayload(result.payload ?? value);
       setPreview(result);
       setAmount(result.amountMinor === null ? '' : amountText(result.amountMinor));
     });
@@ -298,6 +312,9 @@ export default function QrPaymentsScreen({
           <Text style={styles.heading}>
             {reviewing ? 'Confirm QR payment' : 'Resolved recipient'}
           </Text>
+          {preview.merchant && (
+            <Text style={styles.heading}>Merchant: {preview.merchant.displayName}</Text>
+          )}
           <Text style={styles.body}>Verified recipient: @{preview.recipient.username}</Text>
           <Text style={styles.body}>Expires {new Date(preview.expiresAt).toLocaleString()}</Text>
           {expired && <Text style={styles.error}>This QR code has expired.</Text>}
@@ -359,6 +376,7 @@ export default function QrPaymentsScreen({
             onPress={() => {
               setPreview(null);
               setPayload('');
+              checkoutKey.current = null;
               setReviewing(false);
             }}
           />

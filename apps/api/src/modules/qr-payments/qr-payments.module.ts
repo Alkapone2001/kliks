@@ -9,5 +9,6 @@ import { QrPaymentsService } from './qr-payments.service.js';
   imports: [AuditModule, PaymentsModule],
   controllers: [QrPaymentsController],
   providers: [QrPaymentsService, DevelopmentOnlyGuard],
+  exports: [QrPaymentsService],
 })
 export class QrPaymentsModule {}

@@ -6,6 +6,8 @@ import { IdentityModule } from './modules/identity/identity.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
 import { PaymentRequestsModule } from './modules/payment-requests/payment-requests.module.js';
 import { QrPaymentsModule } from './modules/qr-payments/qr-payments.module.js';
+import { SplitBillsModule } from './modules/split-bills/split-bills.module.js';
+import { MerchantsModule } from './modules/merchants/merchants.module.js';
 import { HealthController } from './health.controller.js';
 import { DatabaseModule } from './database/database.module.js';
 
@@ -18,6 +20,8 @@ import { DatabaseModule } from './database/database.module.js';
     PaymentsModule,
     PaymentRequestsModule,
     QrPaymentsModule,
+    SplitBillsModule,
+    MerchantsModule,
     AuditModule,
   ],
   controllers: [HealthController],

@@ -16,6 +16,8 @@ import {
 } from './payment-utils';
 import Icon from './ui-icon';
 import QrPayments from './qr-payments';
+import SplitBills from './split-bills';
+import Merchants from './merchants';
 
 type Screen =
   | 'signin'
@@ -29,7 +31,9 @@ type Screen =
   | 'activity'
   | 'requests'
   | 'request-detail'
-  | 'qr';
+  | 'qr'
+  | 'bills'
+  | 'merchants';
 type Outcome = 'SUCCESS' | 'PENDING' | 'INSUFFICIENT_FUNDS' | 'PROVIDER_FAILURE';
 interface Challenge {
   challengeId: string;
@@ -60,6 +64,8 @@ export interface Payment {
   createdAt: string;
 }
 interface PaymentRequest {
+  merchant?: { id: string; displayName: string } | null;
+  splitBill?: { id: string; title: string } | null;
   id: string;
   requesterId: string;
   payerId: string;
@@ -637,6 +643,8 @@ export default function Workspace() {
                   ['send', 'arrow-up-right', 'Send'],
                   ['requests', 'arrow-down-left', 'Requests'],
                   ['qr', 'qr-code', 'QR pay'],
+                  ['bills', 'users', 'Split bills'],
+                  ['merchants', 'store', 'Merchants'],
                   ['activity', 'receipt-text', 'Activity'],
                   ['accounts', 'landmark', 'Bank accounts'],
                 ] as const
@@ -1300,6 +1308,40 @@ export default function Workspace() {
             </section>
           )}
 
+          {identity && screen === 'merchants' && (
+            <Merchants
+              key={identity.id}
+              identity={identity}
+              saved={saved}
+              api={request}
+              onBusyChange={setBusy}
+              onRequest={async (id) => {
+                const entry = await request<PaymentRequest>(
+                  `/payment-requests/${id}?userId=${identity.id}`,
+                );
+                setSelectedRequest(entry);
+                setScreen('request-detail');
+              }}
+            />
+          )}
+
+          {identity && screen === 'bills' && (
+            <SplitBills
+              key={identity.id}
+              identity={identity}
+              saved={saved}
+              api={request}
+              onBusyChange={setBusy}
+              onRequest={async (requestId) => {
+                const entry = await request<PaymentRequest>(
+                  `/payment-requests/${requestId}?userId=${identity.id}`,
+                );
+                setSelectedRequest(entry);
+                setScreen('request-detail');
+              }}
+            />
+          )}
+
           {identity && screen === 'qr' && (
             <QrPayments
               key={identity.id}
@@ -1424,6 +1466,14 @@ export default function Workspace() {
           {identity && screen === 'request-detail' && selectedRequest && (
             <section className="flow-section">
               <SectionTitle eyebrow="SIMULATED PAYMENT REQUEST" title="Request details" />
+              {selectedRequest.merchant && (
+                <p className="merchant-recipient">
+                  Merchant: {selectedRequest.merchant.displayName}
+                </p>
+              )}
+              {selectedRequest.splitBill && (
+                <p className="muted">Bill: {selectedRequest.splitBill.title}</p>
+              )}
               <dl className="payment-details">
                 <div>
                   <dt>Requested by</dt>

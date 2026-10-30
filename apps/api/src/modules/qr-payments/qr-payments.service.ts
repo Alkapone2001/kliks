@@ -15,12 +15,15 @@ import type { AuditEventType } from '../audit/audit-event.js';
 import { PaymentsService } from '../payments/payments.service.js';
 
 interface CreateQrInput {
+  merchantId?: string;
   ownerId: string;
   amountMinor?: number | null;
   currency: string;
   idempotencyKey: string;
 }
 const qrSelect = {
+  merchantId: true,
+  merchant: { select: { id: true, displayName: true } },
   id: true,
   ownerId: true,
   amountMinor: true,
@@ -62,20 +65,22 @@ export class QrPaymentsService {
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
-  async create(input: CreateQrInput) {
+  async create(input: CreateQrInput, transaction?: Prisma.TransactionClient) {
+    const client = transaction ?? this.database.client;
     const amountMinor = input.amountMinor ?? null;
     this.validateAmount(amountMinor ?? 1, input.currency);
     const key = input.idempotencyKey.trim();
     if (!/^[A-Za-z0-9._:-]{8,128}$/.test(key))
       throw new BadRequestException('Idempotency key must be 8 to 128 safe characters.');
     const where = { ownerId_idempotencyKey: { ownerId: input.ownerId, idempotencyKey: key } };
-    const existing = await this.database.client.qrPaymentSession.findUnique({
+    const existing = await client.qrPaymentSession.findUnique({
       where,
       select: qrSelect,
     });
-    if (existing) return this.retryCode(existing, amountMinor, input.currency);
+    if (existing)
+      return this.retryCode(existing, amountMinor, input.currency, input.merchantId ?? null);
     try {
-      const session = await this.database.client.$transaction(async (transaction) => {
+      const persist = async (transaction: Prisma.TransactionClient) => {
         const owner = await transaction.user.findUnique({
           where: { id: input.ownerId },
           select: { phoneVerifiedAt: true, directoryListingEnabled: true },
@@ -88,6 +93,7 @@ export class QrPaymentsService {
         const created = await transaction.qrPaymentSession.create({
           data: {
             ownerId: input.ownerId,
+            merchantId: input.merchantId ?? null,
             amountMinor: amountMinor === null ? null : BigInt(amountMinor),
             currency: input.currency,
             idempotencyKey: key,
@@ -98,15 +104,23 @@ export class QrPaymentsService {
         });
         await this.record(transaction, 'QR_PAYMENT_CREATED', created.id, input.ownerId);
         return created;
-      });
+      };
+      const session = transaction
+        ? await persist(transaction)
+        : await this.database.client.$transaction(persist);
       return this.toCode(session);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (
+        !transaction &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         const duplicate = await this.database.client.qrPaymentSession.findUnique({
           where,
           select: qrSelect,
         });
-        if (duplicate) return this.retryCode(duplicate, amountMinor, input.currency);
+        if (duplicate)
+          return this.retryCode(duplicate, amountMinor, input.currency, input.merchantId ?? null);
       }
       throw error;
     }
@@ -147,6 +161,7 @@ export class QrPaymentsService {
     await this.requirePayer(this.database.client, payerId);
     return {
       id: session.id,
+      merchant: session.merchant,
       recipient: {
         id: session.owner.id,
         username: session.owner.username,
@@ -246,10 +261,16 @@ export class QrPaymentsService {
       throw new ConflictException('Payer identity must have a verified phone number.');
   }
 
-  private retryCode(session: StoredQr, amountMinor: number | null, currency: string) {
+  private retryCode(
+    session: StoredQr,
+    amountMinor: number | null,
+    currency: string,
+    merchantId: string | null,
+  ) {
     if (
       session.amountMinor !== (amountMinor === null ? null : BigInt(amountMinor)) ||
-      session.currency !== currency
+      session.currency !== currency ||
+      session.merchantId !== merchantId
     )
       throw new ConflictException('Idempotency key was already used with a different request.');
     return this.toCode(session);
@@ -257,6 +278,7 @@ export class QrPaymentsService {
 
   private summary(session: StoredQr) {
     return {
+      merchant: session.merchant,
       id: session.id,
       ownerId: session.ownerId,
       recipient: { id: session.owner.id, username: session.owner.username },

@@ -16,6 +16,7 @@ The system starts as a TypeScript modular monolith. NestJS modules establish dom
 - **Payments** owns payment records, amount and parties, allowed state transitions, idempotency, and orchestration through the connector abstraction. It must not depend on `MockBankConnector` directly.
 - **Payment Requests** owns requests between verified development participants, creation idempotency, pending/accepted/rejected/cancelled decisions, and the unique link to a simulated payment. It delegates payment creation to Payments inside the same database transaction and does not authorize payments itself.
 - **QR Payments** owns single-use 15-minute QR sessions, opaque payload generation, safe server resolution, expiry and replay protection. It delegates confirmed payment creation to Payments inside the same database transaction as consumption and audit, and leaves bank authorization separate.
+- **Split Bills** owns immutable equal/custom allocations, creator/participant membership, bill creation idempotency and creator cancellation. It creates ordinary Payment Requests within one transaction and derives progress from their live request/payment state, rather than inventing a second payment state machine.
 - **Audit** defines append-oriented records for security- and payment-sensitive actions. Events must exclude credentials, OTPs, tokens, and unnecessary personal data.
 
 Identity persists internal IDs, normalized Kosovo phone numbers, canonical usernames, and phone-verification status. Its create/verification endpoints are hidden outside development/test and return only safe identity previews. There is intentionally no public phone-number lookup endpoint; directory lookup belongs to Phase 4.
@@ -38,6 +39,14 @@ QR images are generated locally using `qrcode`; browsers decode through ZXing an
 
 An optional proposed EUR amount is fixed server-side; open-amount codes require a positive safe integer amount from the payer. Resolution never consumes a code. Confirmation locks its row, checks expiry and recipient/account eligibility, and atomically creates one payment plus the unique consumption link and audit records. Concurrent confirmation cannot create multiple payments. Exact same-payer/amount retries recover the linked payment, even if the session has since expired; changed-amount or different-payer replay is rejected. Consumed codes never reopen, even when authorization is rejected or fails. Unused expired codes and undiscoverable recipients cannot be resolved. QR ownership and payer IDs remain fail-closed development-only actor claims, not production access control.
 
+## Split bill consistency
+
+The creator is included with a positive own share, but no self-payment request is created and no original expense payment is implied. A bill has 2 to 20 distinct verified/discoverable participants. Shared integer/BigInt allocation logic divides equal shares exactly, assigning leftover cents to the creator first and then displayed participant order; custom shares must sum exactly to the positive safe-integer EUR total. The server recomputes allocations and validates participants before atomically persisting the bill, shares, one request per other participant, and audit records. Creator-scoped creation keys and canonical allocation fingerprints make retries safe and detect conflicting reuse.
+
+Only participants can read a bill. Linked request details expose safe bill name/reference context, not phone or account information. Bill progress is derived from live request/payment rows: acceptance/processing are not settlement, successful requested shares alone contribute to simulated settled totals, and the creator allocation is not a transfer or balance. No paid flag is trusted from clients.
+
+Creator cancellation locks the bill and linked request rows in stable order, then cancels pending requests through PaymentRequestsService in the same transaction. Any accepted request blocks cancellation; already rejected/cancelled requests remain terminal. This serializes bill cancellation against request acceptance without orphaned payments or cancelling financial records. Existing mock payment authorizations remain separate. No refunds, debt netting, merchant features or real-money behavior are added.
+
 ## No-wallet principle
 
 KLIKS must not create a fictional customer balance, receive customer deposits, store online-banking credentials, or claim to be a bank. A future payment, if approved, must be authorized through the regulated bank or payment-provider mechanism and move between customers' existing accounts. No real money movement is implemented in this repository.
@@ -50,7 +59,7 @@ Do not implement a real connector until authentic provider documentation and san
 
 ## Data and local infrastructure
 
-PostgreSQL is the source of truth; Prisma models identity, verification challenges, directory opt-in, linked bank accounts, simulated payments, payment requests, QR sessions, and append-only audit events in `packages/database`. Directory visibility changes, QR confirmation, request decisions, and payment state transitions are audited transactionally. Redis is available for local development only and is not an authoritative store for payment state or idempotency. Docker ports bind to loopback and use development-only credentials.
+PostgreSQL is the source of truth; Prisma models identity, verification challenges, directory opt-in, linked bank accounts, simulated payments, payment requests, QR sessions, split bills/participant shares, and append-only audit events in `packages/database`. Bill creation/cancellation, directory visibility changes, QR confirmation, request decisions, and payment state transitions are audited transactionally. Redis is available for local development only and is not an authoritative store for payment state or idempotency. Docker ports bind to loopback and use development-only credentials.
 
 ## Simulation status
 

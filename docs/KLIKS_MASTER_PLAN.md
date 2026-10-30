@@ -74,7 +74,7 @@ Only one phase is authorized at a time. At each phase: inspect this plan, reposi
 6. **Mobile MVP (complete):** development identity, home/send/review, mock authorization, success/failure result, activity history, visible simulation warning.
 7. **Payment requests (complete):** create/view/accept/reject/cancel/status and simulated payment, audit/tests; web/mobile request screens.
 8. **QR payments (complete):** opaque safe payloads, local generation/browser/native scanning, server resolution, recipient/amount confirmation, 15-minute expiry and atomic replay protection.
-9. **Split bills:** participants, equal/custom amounts, consistency, requests/status/cancellation.
+9. **Split bills (complete):** participants including creator, exact equal/custom amounts, atomic linked requests, live status and race-safe cancellation; web/mobile workflows.
 10. **Merchant foundation:** profiles/roles, merchant requests, static/dynamic QR concepts, history, justified refund placeholder, audit. Still simulated.
 11. **External and regulatory gate:** prepare the complete external-dependency package and obtain genuine institutional information. Stop before real payments.
 12. **Real provider connector:** only after provider, operating model, authorization, authentic API docs/sandbox, security, authentication, payment status, errors, and dispute behavior are confirmed.
@@ -85,7 +85,7 @@ Do not implement cards, cryptocurrency, international transfers, customer wallet
 
 ## Phase completion contract
 
-Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 8, QR Payments complete**; Phase 9 requires explicit approval.
+Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 9, Split Bills complete**; Phase 10 requires explicit approval.
 
 ## Handoff log
 
@@ -215,3 +215,16 @@ Update this section at the end of each project work session or approved task. Re
 - **Build note:** Next.js reserves `app/icon.tsx` for metadata; the shared UI component is `app/ui-icon.tsx`. Production builds pass after that rename.
 - **Runtime/limits:** web remains at `http://localhost:3000`, with QR pay navigation; no deployment. Actual camera hardware and physical iPhone interaction remain unverified. Browser cameras require localhost/HTTPS plus permission; the previous LAN firewall issue is still deferred. No production authentication, public universal links, split bills, merchants or real bank integration were introduced. Existing concurrency-driver/Turbo test-output warnings are non-failing.
 - **Next gate:** stop before Phase 9, Split Bills, pending separate explicit approval.
+
+### 2026-10-30: Phase 9 Split Bills complete
+
+- **Approval:** user authorized the next phase after Phase 8, interpreted as Phase 9 only. Merchant Foundation and later phases remain unapproved.
+- **Implemented:** persisted bills and immutable participant shares, equal/custom EUR allocation, creator-scoped idempotency/fingerprints, safe participant-only list/detail, atomic linked payment requests and audit, live request/payment status, creator cancellation, and responsive browser/native composition/review/detail/request workflows. Linked request details show the bill name.
+- **Allocation:** 2 to 20 distinct verified/discoverable participants, creator included. The creator has a positive allocation without a self-payment request. Equal shares use integer/BigInt arithmetic and deterministic remainder cents in creator-first/displayed order. Custom shares must sum exactly; fractional, unsafe, zero, duplicate and inconsistent inputs are rejected. No client mark-paid operation or fictional balance exists.
+- **Atomicity/cancellation:** bills, shares, all participant requests and audit records commit or roll back together. Bill cancellation locks the bill and request rows, cancels remaining pending requests atomically, and preserves terminal records. Any accepted request prevents cancellation. Acceptance-versus-cancellation races cannot create a cancelled bill with an accepted payment. Exact creation/cancellation retries do not duplicate or reopen records.
+- **Status/safety:** settlement is derived from successful linked simulated payments, never acceptance or processing. Own share is not paid money. Responses exclude private phone/account/provider/idempotency data. All endpoints are guarded development/test-only; supplied actor IDs are not production authentication. No real funds, refunds, netting or merchant features were added.
+- **Database:** additive `20261030124500_split_bills` migration applied to local PostgreSQL on port 5433; generated/compiled client updated. New bill enums are exported through the database package entry point for portable API declaration builds.
+- **Verified:** root tests (127 API including 21 bill tests, 29 shared including 9 allocation tests, 12 web; 168 total), formatting, lint, strict typecheck and full build including Android/iOS exports. Tests cover exact shares, idempotency, privacy/validation, partial/full/pending/failed settlement, cancellation races, and creation/cancellation audit rollback. Existing request tests pass with caller-owned transactions.
+- **Browser verification:** equal EUR 10.01 allocation into EUR 5.01 creator / EUR 5.00 participant, participant identity switch, linked bill context, request acceptance, Mock Bank success, derived settled status; custom mismatch rejection, exact custom creation and cancellation of the pending linked request. Bill list/detail/custom-entry layouts fit 320/390/768/1024/1440 pixels without horizontal overflow or broken icons; phone-width screenshot inspected.
+- **Runtime/limits:** web remains at `http://localhost:3000` with Split bills navigation; native home has Split bills. No deployment. Physical-device interaction remains unverified and the earlier iPhone LAN/firewall issue stays deferred. Concurrency-driver/Turbo test-output warnings remain non-failing. Accepted bills cannot be cancelled or edited; no refund or financial record rewrite is implied.
+- **Next gate:** stop before Phase 10, Merchant Foundation, pending separate explicit approval.

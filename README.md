@@ -152,6 +152,25 @@ All `/qr-payments` endpoints are development/test-only and results are marked `s
 
 `POST /qr-payments/pay` takes the same fields plus the confirmed positive integer `amountMinor`; it accepts no client destination/currency. A row lock serializes confirmation. The service revalidates expiry, recipient discovery/verification, proposed amount and existing payment/account rules, then atomically persists the payment, consumption link and audit records. Lost-response retries return the same payer's same-amount payment; other replays are rejected. Authorization remains a separate `/payments/{id}/authorize` action. This is a deterministic mock flow, not production authentication, real payment infrastructure or authorization to deploy publicly.
 
+### Test split bills
+
+1. Use two or more verified, discoverable development identities. The existing ready test pair is sufficient. Open **Split bills / New bill**, enter a bill name and positive EUR total, and add participants by username or phone. The creator is included automatically; up to 20 participants are supported.
+2. Choose **Equal shares** or **Custom amounts**. Equal splitting uses integer minor units: leftover cents go to the creator first, then other participants in the displayed order. Each share must be at least one cent. Custom amounts must be positive and sum exactly to the total; inconsistent totals are blocked without creating requests.
+3. Review all shares and select **Create bill and requests**. The creator's own share is recorded without a self-payment request. Every other participant gets one ordinary simulated payment request, all committed atomically with the bill.
+4. Switch to a participant, open the shared bill, and select **Open request** on their share. Request details include the bill name. Accept/reject and Mock Bank authorization use the existing request flow. Both sides need connected default Mock Bank accounts before a payment can be initiated; merely creating the bill does not require accounts.
+5. Refresh the bill to see live request/payment status. Acceptance and processing do not count as settlement. **Simulated settled** sums successful requested shares only; the creator's own share is not a payment or wallet balance. A bill becomes settled only when all non-creator payments succeed. Failed/rejected/cancelled shares stay visible and are not rewritten.
+6. Only the creator can **Cancel bill**, and only before any share request is accepted. Cancellation atomically cancels all remaining pending requests and preserves already rejected/cancelled records. Once any share is accepted, the bill cannot be cancelled, even if the linked payment later fails or is rejected. This does not undo payments or implement refunds.
+
+The mobile home screen exposes the same **Split bills** creation/review/detail/request/cancellation workflow. Web bill list, detail and custom-entry layouts adapt to phone widths. Browser automation and native exports do not constitute a physical-device interaction test.
+
+### Split bill API
+
+All `/split-bills` endpoints are development/test-only and responses include `simulation: true`. `POST /split-bills` accepts `creatorId`, a nonblank `title` up to 80 characters, positive safe-integer `totalMinor`, `currency: "EUR"`, `mode: "EQUAL" | "CUSTOM"`, an owner-scoped `idempotencyKey`, and `participants: [{ "userId": "<uuid>", "amountMinor": 123 }]`. Include the creator exactly once. Omit participant amounts in equal mode; provide every amount in custom mode. Participants must be distinct, verified and discoverable. Server-side allocation and current participant checks remain authoritative.
+
+Creation retries with the same key/content return the existing bill, including after cancellation; changed content returns 409. Bills, immutable shares, linked requests and audit records commit together. `GET /split-bills?userId=<uuid>` lists only that participant's bills; `GET /split-bills/{id}?userId=<uuid>` returns safe participant aliases, exact shares and live linked request/payment states, never phone/account/provider details or idempotency fingerprints. Nonparticipants receive a generic 404. Caller IDs are development actor claims, not production authentication.
+
+`POST /split-bills/{id}/cancel` accepts `{ "userId": "<creator-uuid>" }`. Bill/request row locks serialize cancellation against share acceptance. A repeated cancellation is idempotent; accepted requests prevent cancellation. A race cannot leave a cancelled bill with a newly accepted share. Bill statuses are `OPEN`, `IN_PROGRESS`, `PARTIALLY_SETTLED`, `SETTLED`, `NEEDS_ATTENTION`, or `CANCELLED`, derived from persisted bill state and live linked payment/request records. There is no client-controlled mark-paid operation, automatic settlement, self-payment, debt netting, balance, refund or real money movement.
+
 ## Quality checks
 
 Run from the repository root:
@@ -168,4 +187,4 @@ pnpm build
 
 ## Architecture and scope
 
-Phase 8, QR payments, is complete with responsive browser and native QR workflows. Phase 9, Split Bills, requires separate explicit approval. Real bank/provider integration remains prohibited until the external-dependency and regulatory gate described in the master plan is complete.
+Phase 9, Split Bills, is complete with responsive browser and native workflows. Phase 10, Merchant Foundation, requires separate explicit approval. Real bank/provider integration remains prohibited until the external-dependency and regulatory gate described in the master plan is complete.

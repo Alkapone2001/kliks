@@ -2,7 +2,7 @@
 
 import { useEffect, useEffectEvent, useRef, useState, type FormEvent } from 'react';
 import type { IScannerControls } from '@zxing/browser';
-import { parseQrPaymentPayload } from '@kliks/shared';
+import { parseMerchantQrPayload, parseQrPaymentPayload } from '@kliks/shared';
 import Icon from './ui-icon';
 import { formatEuro, parseEuroMinorUnits, type SavedIdentity } from './payment-utils';
 import type { Payment } from './workspace';
@@ -23,6 +23,8 @@ interface QrCode extends QrSession {
   imageDataUrl: string;
 }
 interface QrPreview {
+  merchant?: { id: string; displayName: string } | null;
+  payload?: string;
   id: string;
   recipient: SavedIdentity;
   amountMinor: number | null;
@@ -60,6 +62,7 @@ export default function QrPayments({
   const [now, setNow] = useState(Date.now());
   const active = useRef(false);
   const key = useRef<{ fingerprint: string; key: string } | null>(null);
+  const checkoutKey = useRef<{ payload: string; key: string } | null>(null);
   const video = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -104,13 +107,21 @@ export default function QrPayments({
     setPreview(null);
     setReviewing(false);
     await run(async () => {
-      if (!parseQrPaymentPayload(value))
+      const merchantId = parseMerchantQrPayload(value);
+      if (!parseQrPaymentPayload(value) && !merchantId)
         throw new Error('Unsupported QR code. Only KLIKS payment QR codes are accepted.');
-      const result = await api<QrPreview>('/qr-payments/resolve', 'POST', {
-        payload: value,
-        payerId: identity.id,
-      });
-      setPayload(value);
+      if (merchantId && checkoutKey.current?.payload !== value)
+        checkoutKey.current = { payload: value, key: `web-checkout-${crypto.randomUUID()}` };
+      const result = await api<QrPreview>(
+        merchantId ? '/merchants/checkout' : '/qr-payments/resolve',
+        'POST',
+        {
+          payload: value,
+          payerId: identity.id,
+          ...(merchantId ? { idempotencyKey: checkoutKey.current?.key } : {}),
+        },
+      );
+      setPayload(result.payload ?? value);
       setPreview(result);
       setAmount(result.amountMinor === null ? '' : amountInput(result.amountMinor));
     });
@@ -363,6 +374,9 @@ export default function QrPayments({
       ) : preview ? (
         <div className="flow-section">
           <h2>{reviewing ? 'Confirm QR payment' : 'Resolved recipient'}</h2>
+          {preview.merchant && (
+            <p className="merchant-recipient">Merchant: {preview.merchant.displayName}</p>
+          )}
           <dl className="payment-details">
             <div>
               <dt>Recipient</dt>
@@ -455,6 +469,7 @@ export default function QrPayments({
               setPreview(null);
               setReviewing(false);
               setPayload('');
+              checkoutKey.current = null;
             }}
           >
             Scan another code

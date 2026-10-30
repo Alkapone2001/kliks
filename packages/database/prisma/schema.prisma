@@ -31,6 +31,21 @@ enum PaymentRequestState {
   CANCELLED
 }
 
+enum SplitBillMode {
+  EQUAL
+  CUSTOM
+}
+
+enum SplitBillState {
+  OPEN
+  CANCELLED
+}
+
+enum MerchantStaffRole {
+  MANAGER
+  VIEWER
+}
+
 model User {
   id                  String                      @id @default(uuid()) @db.Uuid
   phoneNumber         String                      @unique @map("phone_number") @db.VarChar(16)
@@ -46,6 +61,11 @@ model User {
   requestsCreated        PaymentRequest[]            @relation("RequestCreator")
   requestsReceived       PaymentRequest[]            @relation("RequestPayer")
   qrPaymentSessions      QrPaymentSession[]
+  splitBillsCreated      SplitBill[]
+  splitBillShares        SplitBillShare[]
+  merchantProfile        MerchantProfile?
+  merchantMemberships    MerchantMembership[]
+  merchantRequestsMade   MerchantRequest[]
 
   @@map("users")
 }
@@ -138,6 +158,8 @@ model PaymentRequest {
   requester          User                @relation("RequestCreator", fields: [requesterId], references: [id], onDelete: Restrict)
   payer              User                @relation("RequestPayer", fields: [payerId], references: [id], onDelete: Restrict)
   payment            Payment?            @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  splitBillShare     SplitBillShare?
+  merchantRequest    MerchantRequest?
 
   @@unique([requesterId, idempotencyKey])
   @@index([requesterId, createdAt])
@@ -148,6 +170,7 @@ model PaymentRequest {
 model QrPaymentSession {
   id                 String    @id @default(uuid()) @db.Uuid
   ownerId            String    @map("owner_id") @db.Uuid
+  merchantId         String?   @map("merchant_id") @db.Uuid
   amountMinor        BigInt?   @map("amount_minor") @db.BigInt
   currency           String    @db.Char(3)
   idempotencyKey     String    @map("idempotency_key") @db.VarChar(128)
@@ -157,8 +180,89 @@ model QrPaymentSession {
   createdAt          DateTime  @default(now()) @map("created_at")
   owner              User      @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   payment            Payment?  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  merchant           MerchantProfile? @relation(fields: [merchantId], references: [id], onDelete: Restrict)
 
   @@unique([ownerId, idempotencyKey])
+  @@index([merchantId, createdAt])
   @@index([ownerId, createdAt])
   @@map("qr_payment_sessions")
+}
+
+model SplitBill {
+  id                 String         @id @default(uuid()) @db.Uuid
+  creatorId          String         @map("creator_id") @db.Uuid
+  title              String         @db.VarChar(80)
+  totalMinor         BigInt         @map("total_minor") @db.BigInt
+  currency           String         @db.Char(3)
+  mode               SplitBillMode
+  state              SplitBillState @default(OPEN)
+  idempotencyKey     String         @map("idempotency_key") @db.VarChar(128)
+  requestFingerprint String         @map("request_fingerprint") @db.Char(64)
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
+  creator            User           @relation(fields: [creatorId], references: [id], onDelete: Restrict)
+  shares             SplitBillShare[]
+
+  @@unique([creatorId, idempotencyKey])
+  @@index([creatorId, createdAt])
+  @@map("split_bills")
+}
+
+model SplitBillShare {
+  id                 String         @id @default(uuid()) @db.Uuid
+  billId             String         @map("bill_id") @db.Uuid
+  userId             String         @map("user_id") @db.Uuid
+  amountMinor        BigInt         @map("amount_minor") @db.BigInt
+  position           Int
+  requestId          String?        @unique @map("request_id") @db.Uuid
+  createdAt          DateTime       @default(now()) @map("created_at")
+  bill               SplitBill      @relation(fields: [billId], references: [id], onDelete: Restrict)
+  user               User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  request            PaymentRequest? @relation(fields: [requestId], references: [id], onDelete: Restrict)
+
+  @@unique([billId, userId])
+  @@unique([billId, position])
+  @@index([userId, createdAt])
+  @@map("split_bill_shares")
+}
+
+model MerchantProfile {
+  id                 String               @id @default(uuid()) @db.Uuid
+  ownerId            String               @unique @map("owner_id") @db.Uuid
+  displayName        String               @map("display_name") @db.VarChar(80)
+  createdAt          DateTime             @default(now()) @map("created_at")
+  updatedAt          DateTime             @updatedAt @map("updated_at")
+  owner              User                 @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  members            MerchantMembership[]
+  requests           MerchantRequest[]
+  qrSessions         QrPaymentSession[]
+
+  @@map("merchant_profiles")
+}
+
+model MerchantMembership {
+  merchantId         String            @map("merchant_id") @db.Uuid
+  userId             String            @map("user_id") @db.Uuid
+  role               MerchantStaffRole
+  createdAt          DateTime          @default(now()) @map("created_at")
+  merchant           MerchantProfile   @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  user               User              @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@id([merchantId, userId])
+  @@index([userId])
+  @@map("merchant_memberships")
+}
+
+model MerchantRequest {
+  id                 String           @id @default(uuid()) @db.Uuid
+  merchantId         String           @map("merchant_id") @db.Uuid
+  requestId          String           @unique @map("request_id") @db.Uuid
+  createdById        String           @map("created_by_id") @db.Uuid
+  createdAt          DateTime         @default(now()) @map("created_at")
+  merchant           MerchantProfile  @relation(fields: [merchantId], references: [id], onDelete: Restrict)
+  request            PaymentRequest   @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  createdBy          User             @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([merchantId, createdAt])
+  @@map("merchant_requests")
 }

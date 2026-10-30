@@ -33,6 +33,8 @@ const requestSelect = {
   updatedAt: true,
   requester: { select: { id: true, username: true } },
   payer: { select: { id: true, username: true } },
+  merchantRequest: { select: { merchant: { select: { id: true, displayName: true } } } },
+  splitBillShare: { select: { billId: true, bill: { select: { title: true } } } },
   payment: {
     select: {
       id: true,
@@ -57,7 +59,8 @@ export class PaymentRequestsService {
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
-  async create(input: CreateRequestInput) {
+  async create(input: CreateRequestInput, transaction?: Prisma.TransactionClient) {
+    const client = transaction ?? this.database.client;
     if (input.requesterId === input.payerId)
       throw new BadRequestException('Choose a different payer.');
     try {
@@ -73,13 +76,13 @@ export class PaymentRequestsService {
     const where = {
       requesterId_idempotencyKey: { requesterId: input.requesterId, idempotencyKey: key },
     };
-    const existing = await this.database.client.paymentRequest.findUnique({
+    const existing = await client.paymentRequest.findUnique({
       where,
       select: requestSelect,
     });
     if (existing) return this.resolveRetry(existing, input);
     try {
-      const created = await this.database.client.$transaction(async (transaction) => {
+      const persist = async (transaction: Prisma.TransactionClient) => {
         const users = await transaction.user.findMany({
           where: { id: { in: [input.requesterId, input.payerId] } },
           select: { id: true, phoneVerifiedAt: true, directoryListingEnabled: true },
@@ -106,10 +109,17 @@ export class PaymentRequestsService {
         });
         await this.record(transaction, 'PAYMENT_REQUEST_CREATED', request.id, input.requesterId);
         return request;
-      });
+      };
+      const created = transaction
+        ? await persist(transaction)
+        : await this.database.client.$transaction(persist);
       return this.toPublic(created);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (
+        !transaction &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         const duplicate = await this.database.client.paymentRequest.findUnique({
           where,
           select: requestSelect,
@@ -175,12 +185,17 @@ export class PaymentRequestsService {
   reject(requestId: string, payerId: string) {
     return this.close(requestId, payerId, PaymentRequestState.REJECTED);
   }
-  cancel(requestId: string, requesterId: string) {
-    return this.close(requestId, requesterId, PaymentRequestState.CANCELLED);
+  cancel(requestId: string, requesterId: string, transaction?: Prisma.TransactionClient) {
+    return this.close(requestId, requesterId, PaymentRequestState.CANCELLED, transaction);
   }
 
-  private async close(requestId: string, actorId: string, state: 'REJECTED' | 'CANCELLED') {
-    return this.database.client.$transaction(async (transaction) => {
+  private async close(
+    requestId: string,
+    actorId: string,
+    state: 'REJECTED' | 'CANCELLED',
+    transaction?: Prisma.TransactionClient,
+  ) {
+    const persist = async (transaction: Prisma.TransactionClient) => {
       const request = await this.lock(transaction, requestId, actorId);
       const expectedActor = state === 'REJECTED' ? request.payerId : request.requesterId;
       if (expectedActor !== actorId) throw new NotFoundException('Payment request not found.');
@@ -199,7 +214,8 @@ export class PaymentRequestsService {
         actorId,
       );
       return this.toPublic(updated);
-    });
+    };
+    return transaction ? persist(transaction) : this.database.client.$transaction(persist);
   }
 
   private async lock(transaction: Prisma.TransactionClient, requestId: string, actorId: string) {
@@ -252,6 +268,10 @@ export class PaymentRequestsService {
       payerId: request.payerId,
       requester: request.requester,
       payer: request.payer,
+      merchant: request.merchantRequest?.merchant ?? null,
+      splitBill: request.splitBillShare
+        ? { id: request.splitBillShare.billId, title: request.splitBillShare.bill.title }
+        : null,
       amountMinor,
       currency: request.currency,
       state: request.state,

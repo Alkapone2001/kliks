@@ -20,6 +20,8 @@ import {
 } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
 import QrPaymentsScreen from './QrPaymentsScreen';
+import SplitBillsScreen from './SplitBillsScreen';
+import MerchantsScreen from './MerchantsScreen';
 
 const identityStorageKey = 'kliks.development-identity.v1';
 const defaultApiUrl = Platform.OS === 'android' ? 'http://10.0.2.2:3001' : 'http://localhost:3001';
@@ -38,7 +40,9 @@ type Screen =
   | 'activity'
   | 'requests'
   | 'request-detail'
-  | 'qr';
+  | 'qr'
+  | 'bills'
+  | 'merchants';
 type RecipientMode = 'phone' | 'username';
 type PaymentState =
   | 'CREATED'
@@ -95,6 +99,8 @@ export interface Payment {
 }
 
 interface PaymentRequest {
+  merchant?: { id: string; displayName: string } | null;
+  splitBill?: { id: string; title: string } | null;
   id: string;
   requesterId: string;
   payerId: string;
@@ -630,6 +636,8 @@ export default function App() {
               onActivity={openActivity}
               onRequests={openRequests}
               onQr={() => setScreen('qr')}
+              onBills={() => setScreen('bills')}
+              onMerchants={() => setScreen('merchants')}
               onSignOut={signOutDevelopmentIdentity}
             />
           ) : null}
@@ -701,6 +709,40 @@ export default function App() {
               onHome={() => setScreen('home')}
               onActivity={openActivity}
               onSendAnother={startSend}
+            />
+          ) : null}
+
+          {screen === 'merchants' && identity ? (
+            <MerchantsScreen
+              key={identity.id}
+              identity={identity}
+              api={apiRequest}
+              onBusyChange={setBusy}
+              onBack={() => setScreen('home')}
+              onRequest={async (id) => {
+                const entry = await apiRequest<PaymentRequest>(
+                  `/payment-requests/${id}?userId=${identity.id}`,
+                );
+                setSelectedRequest(entry);
+                setScreen('request-detail');
+              }}
+            />
+          ) : null}
+
+          {screen === 'bills' && identity ? (
+            <SplitBillsScreen
+              key={identity.id}
+              identity={identity}
+              api={apiRequest}
+              onBusyChange={setBusy}
+              onBack={() => setScreen('home')}
+              onRequest={async (requestId) => {
+                const entry = await apiRequest<PaymentRequest>(
+                  `/payment-requests/${requestId}?userId=${identity.id}`,
+                );
+                setSelectedRequest(entry);
+                setScreen('request-detail');
+              }}
             />
           ) : null}
 
@@ -796,6 +838,16 @@ export default function App() {
           {screen === 'request-detail' && identity && selectedRequest ? (
             <View style={styles.content}>
               <Text style={[styles.sectionTitle, fontBold]}>Request details</Text>
+              {selectedRequest.merchant && (
+                <Text style={[styles.sectionTitle, fontBold]}>
+                  Merchant: {selectedRequest.merchant.displayName}
+                </Text>
+              )}
+              {selectedRequest.splitBill && (
+                <Text style={[styles.secondaryBody, fontRegular]}>
+                  Bill: {selectedRequest.splitBill.title}
+                </Text>
+              )}
               <SimulationNotice compact />
               <ReviewRow
                 label="REQUESTED BY"
@@ -1036,6 +1088,8 @@ function HomeScreen({
   onActivity,
   onRequests,
   onQr,
+  onBills,
+  onMerchants,
   onSignOut,
 }: {
   identity: Identity;
@@ -1055,6 +1109,8 @@ function HomeScreen({
   onActivity: () => void;
   onRequests: () => void;
   onQr: () => void;
+  onBills: () => void;
+  onMerchants: () => void;
   onSignOut: () => void;
 }) {
   return (
@@ -1163,6 +1219,8 @@ function HomeScreen({
           onPress={onRequests}
         />
         <ActionButton disabled={busy} kind="secondary" label="QR payments" onPress={onQr} />
+        <ActionButton disabled={busy} kind="secondary" label="Split bills" onPress={onBills} />
+        <ActionButton disabled={busy} kind="secondary" label="Merchants" onPress={onMerchants} />
         <Pressable accessibilityRole="button" onPress={onActivity} style={styles.secondaryAction}>
           <Text style={[styles.link, fontSemibold]}>View activity</Text>
         </Pressable>

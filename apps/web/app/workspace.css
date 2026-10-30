@@ -693,6 +693,188 @@ form > .action {
   gap: 40px;
   margin: 30px 0 42px;
 }
+.merchant-recipient {
+  font-weight: 600;
+  color: var(--green);
+  overflow-wrap: anywhere;
+}
+.merchant-context {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.merchant-tabs {
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.merchant-history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px auto;
+  align-items: center;
+  gap: 20px;
+  border-top: 1px solid var(--line);
+  padding: 20px 0;
+}
+.merchant-history-row > strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+.merchant-history-heading {
+  margin-top: 36px;
+}
+.merchant-refund {
+  border-top: 1px solid var(--line);
+  margin-top: 32px;
+  padding-top: 24px;
+}
+.merchant-dynamic-form,
+.merchant-profile-form {
+  max-width: 570px;
+  padding: 24px 0;
+}
+.merchant-code {
+  display: grid;
+  justify-items: start;
+  gap: 18px;
+  max-width: 570px;
+  margin-top: 30px;
+}
+.merchant-code label {
+  width: 100%;
+}
+.merchant-team-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 180px);
+  gap: 20px;
+  align-items: center;
+  padding: 18px 0;
+  border-top: 1px solid var(--line);
+}
+.merchant-team-row > span {
+  overflow-wrap: anywhere;
+}
+.merchant-list .bill-row {
+  grid-template-columns: minmax(0, 1fr) 110px 20px;
+}
+@media (max-width: 760px) {
+  .merchant-history-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+  .merchant-history-row > .flow-actions {
+    grid-column: 1 / -1;
+  }
+  .merchant-team-row {
+    grid-template-columns: minmax(0, 1fr) 120px;
+    gap: 10px;
+  }
+  .merchant-list .bill-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+.bill-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 150px 150px 20px;
+  gap: 20px;
+  align-items: center;
+  padding: 22px 0;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--line);
+}
+.bill-row strong,
+.bill-person strong {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.bill-row small,
+.bill-person small,
+.bill-review-share small {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 6px;
+}
+.bill-composer {
+  max-width: 760px;
+}
+.bill-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.bill-composer > .segmented {
+  margin-bottom: 30px;
+}
+.bill-participant-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 160px) 42px;
+  gap: 12px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.bill-person {
+  min-width: 0;
+}
+.bill-share-amount {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.bill-lookup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+  gap: 18px;
+  margin: 28px 0;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--line);
+  align-items: end;
+}
+.bill-lookup .action {
+  justify-self: start;
+}
+.bill-review-share {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.bill-review-share + .flow-actions {
+  margin-top: 26px;
+}
+.bill-summary {
+  max-width: 570px;
+}
+.bill-detail-share {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 130px auto;
+  gap: 20px;
+  align-items: center;
+  padding: 22px 0;
+  border-top: 1px solid var(--line);
+}
+.bill-detail-share + .flow-actions {
+  margin-top: 24px;
+}
+.state-settled {
+  background: #dfeedd;
+  color: #24512e;
+}
+.state-needs_attention {
+  background: #f9e3de;
+  color: #953f2b;
+}
 .qr-image-area {
   display: flex;
   flex-direction: column;
@@ -981,6 +1163,32 @@ dd {
   }
 }
 @media (max-width: 760px) {
+  .bill-fields,
+  .bill-lookup {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bill-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+  .bill-row > .icon {
+    display: none;
+  }
+  .bill-row .state {
+    grid-column: 1 / -1;
+  }
+  .bill-participant-row {
+    grid-template-columns: minmax(0, 1fr) 100px 42px;
+    gap: 8px;
+  }
+  .bill-detail-share {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
+  }
+  .bill-detail-share .action {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
   .workspace {
     grid-template-columns: minmax(0, 1fr);
   }
