@@ -97,7 +97,11 @@ export class PaymentsService {
     @Inject(AuditService) private readonly audit: AuditService,
   ) {}
 
-  async createPayment(input: CreatePaymentInput): Promise<PublicPayment> {
+  async createPayment(
+    input: CreatePaymentInput,
+    transaction?: Prisma.TransactionClient,
+  ): Promise<PublicPayment> {
+    const client = transaction ?? this.database.client;
     const payerId = input.payerId;
     const payeeId = input.payeeId;
     if (payerId === payeeId) {
@@ -122,7 +126,7 @@ export class PaymentsService {
       throw new BadRequestException('Idempotency key must be 8 to 128 safe characters.');
     }
     const requestFingerprint = this.fingerprint({ payerId, payeeId, amount });
-    const existing = await this.database.client.payment.findUnique({
+    const existing = await client.payment.findUnique({
       where: { payerId_idempotencyKey: { payerId, idempotencyKey } },
       select: idempotencySelect,
     });
@@ -130,11 +134,9 @@ export class PaymentsService {
       return this.resolveIdempotent(existing, requestFingerprint);
     }
 
-    await this.validateParticipants(payerId, payeeId);
-    const [payerAccount, payeeAccount] = await Promise.all([
-      this.findDefaultConnectedAccount(payerId),
-      this.findDefaultConnectedAccount(payeeId),
-    ]);
+    await this.validateParticipants(payerId, payeeId, client);
+    const payerAccount = await this.findDefaultConnectedAccount(payerId, client);
+    const payeeAccount = await this.findDefaultConnectedAccount(payeeId, client);
     if (!payerAccount) {
       throw new ConflictException('Payer has no connected default account.');
     }
@@ -161,7 +163,7 @@ export class PaymentsService {
     );
 
     try {
-      const saved = await this.database.client.$transaction(async (transaction) => {
+      const persist = async (transaction: Prisma.TransactionClient) => {
         await transaction.payment.create({
           data: {
             id: created.id,
@@ -198,10 +200,17 @@ export class PaymentsService {
           simulation: true,
         });
         return payment;
-      });
+      };
+      const saved = transaction
+        ? await persist(transaction)
+        : await this.database.client.$transaction(persist);
       return this.toPublicPayment(saved);
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      if (
+        !transaction &&
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
         const duplicate = await this.database.client.payment.findUnique({
           where: { payerId_idempotencyKey: { payerId, idempotencyKey } },
           select: idempotencySelect,
@@ -330,8 +339,12 @@ export class PaymentsService {
     return payments.map((payment) => this.toPublicPayment(payment));
   }
 
-  private async validateParticipants(payerId: string, payeeId: string): Promise<void> {
-    const users = await this.database.client.user.findMany({
+  private async validateParticipants(
+    payerId: string,
+    payeeId: string,
+    client: Prisma.TransactionClient,
+  ): Promise<void> {
+    const users = await client.user.findMany({
       where: { id: { in: [payerId, payeeId] } },
       select: {
         id: true,
@@ -349,8 +362,8 @@ export class PaymentsService {
     }
   }
 
-  private findDefaultConnectedAccount(userId: string) {
-    return this.database.client.linkedBankAccount.findFirst({
+  private findDefaultConnectedAccount(userId: string, client: Prisma.TransactionClient) {
+    return client.linkedBankAccount.findFirst({
       where: { userId, connectionStatus: 'CONNECTED', isDefault: true },
       orderBy: { createdAt: 'desc' },
       select: { id: true, providerAccountReference: true },

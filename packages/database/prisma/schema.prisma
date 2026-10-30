@@ -24,6 +24,13 @@ enum PaymentState {
   CANCELLED
 }
 
+enum PaymentRequestState {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
 model User {
   id                  String                      @id @default(uuid()) @db.Uuid
   phoneNumber         String                      @unique @map("phone_number") @db.VarChar(16)
@@ -36,6 +43,8 @@ model User {
   linkedBankAccounts     LinkedBankAccount[]
   paymentsInitiated      Payment[]                   @relation("PaymentsAsPayer")
   paymentsReceived       Payment[]                   @relation("PaymentsAsPayee")
+  requestsCreated        PaymentRequest[]            @relation("RequestCreator")
+  requestsReceived       PaymentRequest[]            @relation("RequestPayer")
 
   @@map("users")
 }
@@ -105,9 +114,31 @@ model Payment {
   payee                  User                @relation("PaymentsAsPayee", fields: [payeeId], references: [id], onDelete: Restrict)
   payerAccount           LinkedBankAccount   @relation("PaymentPayerAccount", fields: [payerAccountId], references: [id], onDelete: Restrict)
   payeeAccount           LinkedBankAccount   @relation("PaymentPayeeAccount", fields: [payeeAccountId], references: [id], onDelete: Restrict)
+  paymentRequest         PaymentRequest?
 
   @@unique([payerId, idempotencyKey])
   @@index([payerId, createdAt])
   @@index([payeeId, createdAt])
   @@map("payments")
+}
+
+model PaymentRequest {
+  id                 String              @id @default(uuid()) @db.Uuid
+  requesterId        String              @map("requester_id") @db.Uuid
+  payerId            String              @map("payer_id") @db.Uuid
+  amountMinor        BigInt              @map("amount_minor") @db.BigInt
+  currency           String              @db.Char(3)
+  state              PaymentRequestState @default(PENDING)
+  idempotencyKey     String              @map("idempotency_key") @db.VarChar(128)
+  paymentId          String?             @unique @map("payment_id") @db.Uuid
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  requester          User                @relation("RequestCreator", fields: [requesterId], references: [id], onDelete: Restrict)
+  payer              User                @relation("RequestPayer", fields: [payerId], references: [id], onDelete: Restrict)
+  payment            Payment?            @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@unique([requesterId, idempotencyKey])
+  @@index([requesterId, createdAt])
+  @@index([payerId, createdAt])
+  @@map("payment_requests")
 }

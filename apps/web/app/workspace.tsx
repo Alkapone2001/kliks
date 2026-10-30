@@ -24,7 +24,9 @@ type Screen =
   | 'review'
   | 'authorize'
   | 'result'
-  | 'activity';
+  | 'activity'
+  | 'requests'
+  | 'request-detail';
 type Outcome = 'SUCCESS' | 'PENDING' | 'INSUFFICIENT_FUNDS' | 'PROVIDER_FAILURE';
 interface Challenge {
   challengeId: string;
@@ -53,6 +55,19 @@ interface Payment {
     | 'CANCELLED';
   failureCode: string | null;
   createdAt: string;
+}
+interface PaymentRequest {
+  id: string;
+  requesterId: string;
+  payerId: string;
+  requester: SavedIdentity;
+  payer: SavedIdentity;
+  amountMinor: number;
+  currency: 'EUR';
+  state: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
+  payment: Payment | null;
+  createdAt: string;
+  simulation: true;
 }
 const storageKey = 'kliks.web.identities.v1';
 const activeKey = 'kliks.web.active.v1';
@@ -156,6 +171,10 @@ export default function Workspace() {
   const [code, setCode] = useState('');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [history, setHistory] = useState<Payment[]>([]);
+  const [requests, setRequests] = useState<PaymentRequest[]>([]);
+  const [selectedRequest, setSelectedRequest] = useState<PaymentRequest | null>(null);
+  const [intent, setIntent] = useState<'send' | 'request'>('send');
+  const [requestTab, setRequestTab] = useState<'incoming' | 'outgoing'>('incoming');
   const [visibility, setVisibility] = useState<boolean | null>(null);
   const [mode, setMode] = useState<'username' | 'phone'>('username');
   const [query, setQuery] = useState('');
@@ -191,15 +210,19 @@ export default function Workspace() {
     let active = true;
     setAccounts([]);
     setHistory([]);
+    setRequests([]);
+    setSelectedRequest(null);
     setVisibility(null);
     Promise.all([
       request<Account[]>(`/banking/accounts?userId=${identity.id}`),
       request<Payment[]>(`/payments?userId=${identity.id}`),
+      request<PaymentRequest[]>(`/payment-requests?userId=${identity.id}`),
     ])
-      .then(([nextAccounts, nextHistory]) => {
+      .then(([nextAccounts, nextHistory, nextRequests]) => {
         if (active) {
           setAccounts(nextAccounts);
           setHistory(nextHistory);
+          setRequests(nextRequests);
         }
       })
       .catch((failure) => {
@@ -250,6 +273,7 @@ export default function Workspace() {
     setIdentity(next);
     setScreen('overview');
     setPayment(null);
+    setSelectedRequest(null);
     setRecipient(null);
     setError('');
     setNotice('');
@@ -262,12 +286,18 @@ export default function Workspace() {
 
   async function refresh() {
     if (!identity) return;
-    const [nextAccounts, nextHistory] = await Promise.all([
+    const [nextAccounts, nextHistory, nextRequests] = await Promise.all([
       request<Account[]>(`/banking/accounts?userId=${identity.id}`),
       request<Payment[]>(`/payments?userId=${identity.id}`),
+      request<PaymentRequest[]>(`/payment-requests?userId=${identity.id}`),
     ]);
     setAccounts(nextAccounts);
     setHistory(nextHistory);
+    setRequests(nextRequests);
+    if (selectedRequest) {
+      const latest = nextRequests.find((entry) => entry.id === selectedRequest.id);
+      if (latest) setSelectedRequest(latest);
+    }
     if (payment) {
       const latest = nextHistory.find((entry) => entry.id === payment.id);
       if (latest) setPayment(latest);
@@ -370,6 +400,8 @@ export default function Workspace() {
   );
 
   function startSend() {
+    setIntent('send');
+    setSelectedRequest(null);
     if (!defaultAccount) {
       setScreen('accounts');
       setError('Connect, authorize, and select a default Mock Bank account first.');
@@ -384,6 +416,65 @@ export default function Workspace() {
     setError('');
     setNotice('');
     setScreen('send');
+  }
+
+  function startRequest() {
+    setIntent('request');
+    setQuery('');
+    setAmount('');
+    setRecipient(null);
+    setSelectedRequest(null);
+    paymentKey.current = null;
+    setError('');
+    setNotice('');
+    setScreen('send');
+  }
+
+  async function createRequest() {
+    if (!identity || !recipient) return;
+    await run(async () => {
+      const amountMinor = parseEuroMinorUnits(amount);
+      if (!amountMinor) throw new Error('Enter a valid EUR amount.');
+      const fingerprint = JSON.stringify(['request', identity.id, recipient.id, amountMinor]);
+      if (paymentKey.current?.fingerprint !== fingerprint)
+        paymentKey.current = { fingerprint, key: `web-request-${crypto.randomUUID()}` };
+      const created = await request<PaymentRequest>('/payment-requests', 'POST', {
+        requesterId: identity.id,
+        payerId: recipient.id,
+        amountMinor,
+        currency: 'EUR',
+        idempotencyKey: paymentKey.current.key,
+      });
+      setSelectedRequest(created);
+      setRequests((current) => [created, ...current.filter((entry) => entry.id !== created.id)]);
+      setScreen('request-detail');
+    });
+  }
+
+  function openRequestPayment(entry: PaymentRequest) {
+    if (!entry.payment) return;
+    setPayment(entry.payment);
+    setRecipient(entry.requester);
+    setOutcome('SUCCESS');
+    setScreen(
+      entry.payerId === identity?.id && entry.payment.state === 'REQUIRES_AUTHORIZATION'
+        ? 'authorize'
+        : 'result',
+    );
+  }
+
+  async function requestAction(action: 'accept' | 'reject' | 'cancel') {
+    if (!identity || !selectedRequest) return;
+    await run(async () => {
+      const updated = await request<PaymentRequest>(
+        `/payment-requests/${selectedRequest.id}/${action}`,
+        'POST',
+        { userId: identity.id },
+      );
+      setSelectedRequest(updated);
+      setRequests((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)));
+      if (action === 'accept') openRequestPayment(updated);
+    });
   }
 
   async function review(event: FormEvent) {
@@ -453,6 +544,8 @@ export default function Workspace() {
     setIdentity(null);
     setAccounts([]);
     setHistory([]);
+    setRequests([]);
+    setSelectedRequest(null);
     setScreen('signin');
     setError('');
     setNotice('');
@@ -552,6 +645,7 @@ export default function Workspace() {
                 [
                   ['overview', 'layout-dashboard', 'Overview'],
                   ['send', 'arrow-up-right', 'Send'],
+                  ['requests', 'arrow-down-left', 'Requests'],
                   ['activity', 'receipt-text', 'Activity'],
                   ['accounts', 'landmark', 'Bank accounts'],
                 ] as const
@@ -560,8 +654,13 @@ export default function Workspace() {
                   key={target}
                   disabled={busy}
                   className={
-                    screen === target ||
-                    (target === 'send' && ['review', 'authorize', 'result'].includes(screen))
+                    (screen === target && (target !== 'send' || intent === 'send')) ||
+                    (target === 'send' &&
+                      intent === 'send' &&
+                      ['review', 'authorize', 'result'].includes(screen)) ||
+                    (target === 'requests' &&
+                      (screen === 'request-detail' ||
+                        (intent === 'request' && ['send', 'review'].includes(screen))))
                       ? 'nav-item selected'
                       : 'nav-item'
                   }
@@ -947,7 +1046,12 @@ export default function Workspace() {
 
           {identity && screen === 'send' && (
             <section className="flow-section">
-              <SectionTitle eyebrow="01 / SIMULATED PAYMENT" title="Who are you paying?" />
+              <SectionTitle
+                eyebrow={intent === 'request' ? '01 / SIMULATED REQUEST' : '01 / SIMULATED PAYMENT'}
+                title={
+                  intent === 'request' ? 'Who are you requesting from?' : 'Who are you paying?'
+                }
+              />
               <form onSubmit={review}>
                 <fieldset className="segmented">
                   <legend className="sr-only">Recipient lookup mode</legend>
@@ -968,7 +1072,13 @@ export default function Workspace() {
                   ))}
                 </fieldset>
                 <label>
-                  {mode === 'username' ? 'Recipient username' : 'Recipient phone number'}
+                  {intent === 'request'
+                    ? mode === 'username'
+                      ? 'Payer username'
+                      : 'Payer phone number'
+                    : mode === 'username'
+                      ? 'Recipient username'
+                      : 'Recipient phone number'}
                   <input
                     required
                     autoComplete="off"
@@ -1005,7 +1115,7 @@ export default function Workspace() {
                 </label>
                 <div className="flow-actions">
                   <Button icon="arrow-right" disabled={busy}>
-                    Review simulation
+                    {intent === 'request' ? 'Review request' : 'Review simulation'}
                   </Button>
                   <Button
                     type="button"
@@ -1022,10 +1132,13 @@ export default function Workspace() {
 
           {screen === 'review' && recipient && (
             <section className="flow-section">
-              <SectionTitle eyebrow="02 / REVIEW" title="Check the details" />
+              <SectionTitle
+                eyebrow="02 / REVIEW"
+                title={intent === 'request' ? 'Review payment request' : 'Check the details'}
+              />
               <dl className="payment-details">
                 <div>
-                  <dt>Verified recipient</dt>
+                  <dt>{intent === 'request' ? 'Verified payer' : 'Verified recipient'}</dt>
                   <dd>
                     @{recipient.username}
                     <span className="verified">
@@ -1039,8 +1152,12 @@ export default function Workspace() {
                   <dd className="large-amount">{formatEuro(parseEuroMinorUnits(amount) ?? 0)}</dd>
                 </div>
                 <div>
-                  <dt>From</dt>
-                  <dd>{defaultAccount?.displayName ?? 'Mock Bank'}</dd>
+                  <dt>{intent === 'request' ? 'Requested by' : 'From'}</dt>
+                  <dd>
+                    {intent === 'request'
+                      ? `@${identity?.username}`
+                      : (defaultAccount?.displayName ?? 'Mock Bank')}
+                  </dd>
                 </div>
                 <div>
                   <dt>Payment type</dt>
@@ -1048,8 +1165,12 @@ export default function Workspace() {
                 </div>
               </dl>
               <div className="flow-actions">
-                <Button icon="arrow-right" disabled={busy} onClick={() => void createPayment()}>
-                  Continue to Mock Bank
+                <Button
+                  icon="arrow-right"
+                  disabled={busy}
+                  onClick={() => void (intent === 'request' ? createRequest() : createPayment())}
+                >
+                  {intent === 'request' ? 'Create payment request' : 'Continue to Mock Bank'}
                 </Button>
                 <Button secondary disabled={busy} onClick={() => setScreen('send')}>
                   Edit details
@@ -1183,6 +1304,206 @@ export default function Workspace() {
                   onClick={() => void run(refresh)}
                 >
                   Refresh status
+                </Button>
+              </div>
+            </section>
+          )}
+
+          {identity && screen === 'requests' && (
+            <>
+              <SectionTitle
+                eyebrow="SIMULATED / PAYMENT REQUESTS"
+                title="Requests"
+                action={
+                  <div className="flow-actions">
+                    <button
+                      className="icon-button"
+                      title="Refresh requests"
+                      aria-label="Refresh requests"
+                      disabled={busy}
+                      onClick={() => void run(refresh)}
+                    >
+                      <Icon name="refresh-cw" />
+                    </button>
+                    <Button icon="plus" disabled={busy} onClick={startRequest}>
+                      New request
+                    </Button>
+                  </div>
+                }
+              />
+              <div className="request-tabs" role="tablist" aria-label="Request direction">
+                {(['incoming', 'outgoing'] as const).map((tab) => (
+                  <button
+                    key={tab}
+                    role="tab"
+                    aria-selected={requestTab === tab}
+                    onClick={() => setRequestTab(tab)}
+                  >
+                    {tab === 'incoming' ? 'Incoming' : 'Outgoing'}{' '}
+                    <span className="count">
+                      {
+                        requests.filter(
+                          (entry) =>
+                            (tab === 'incoming' ? entry.payerId : entry.requesterId) ===
+                            identity.id,
+                        ).length
+                      }
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div
+                role="tabpanel"
+                aria-label={requestTab === 'incoming' ? 'Incoming requests' : 'Outgoing requests'}
+              >
+                {requests
+                  .filter(
+                    (entry) =>
+                      (requestTab === 'incoming' ? entry.payerId : entry.requesterId) ===
+                      identity.id,
+                  )
+                  .map((entry) => (
+                    <button
+                      className="transaction request-row"
+                      key={entry.id}
+                      disabled={busy}
+                      onClick={() => {
+                        setSelectedRequest(entry);
+                        setScreen('request-detail');
+                        setError('');
+                      }}
+                    >
+                      <span className="transaction-person">
+                        <span className="direction">
+                          <Icon
+                            name={requestTab === 'incoming' ? 'arrow-down-left' : 'arrow-up-right'}
+                          />
+                        </span>
+                        <span>
+                          <strong>
+                            @
+                            {requestTab === 'incoming'
+                              ? entry.requester.username
+                              : entry.payer.username}
+                          </strong>
+                          <small>{new Date(entry.createdAt).toLocaleString()}</small>
+                        </span>
+                      </span>
+                      <span className="transaction-amount">{formatEuro(entry.amountMinor)}</span>
+                      <span className="request-status">
+                        <StateBadge state={entry.state} />
+                        {entry.payment && (
+                          <span>
+                            Payment: {entry.payment.state.replaceAll('_', ' ').toLowerCase()}
+                          </span>
+                        )}
+                      </span>
+                      <Icon name="chevron-right" />
+                    </button>
+                  ))}
+                {!requests.some(
+                  (entry) =>
+                    (requestTab === 'incoming' ? entry.payerId : entry.requesterId) === identity.id,
+                ) && (
+                  <div className="empty-state">
+                    <Icon name="inbox" />
+                    <h3>No {requestTab} requests</h3>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {identity && screen === 'request-detail' && selectedRequest && (
+            <section className="flow-section">
+              <SectionTitle eyebrow="SIMULATED PAYMENT REQUEST" title="Request details" />
+              <dl className="payment-details">
+                <div>
+                  <dt>Requested by</dt>
+                  <dd>@{selectedRequest.requester.username}</dd>
+                </div>
+                <div>
+                  <dt>Payer</dt>
+                  <dd>@{selectedRequest.payer.username}</dd>
+                </div>
+                <div>
+                  <dt>Amount</dt>
+                  <dd className="large-amount">{formatEuro(selectedRequest.amountMinor)}</dd>
+                </div>
+                <div>
+                  <dt>Request status</dt>
+                  <dd>
+                    <StateBadge state={selectedRequest.state} />
+                  </dd>
+                </div>
+                <div>
+                  <dt>Payment status</dt>
+                  <dd>
+                    {selectedRequest.payment ? (
+                      <StateBadge state={selectedRequest.payment.state} />
+                    ) : (
+                      'No payment created'
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Reference</dt>
+                  <dd className="reference">{selectedRequest.id}</dd>
+                </div>
+              </dl>
+              <div className="flow-actions">
+                {selectedRequest.state === 'PENDING' && selectedRequest.payerId === identity.id && (
+                  <>
+                    <Button
+                      icon="check"
+                      disabled={busy}
+                      onClick={() => void requestAction('accept')}
+                    >
+                      Accept request
+                    </Button>
+                    <Button
+                      secondary
+                      icon="x"
+                      disabled={busy}
+                      onClick={() => void requestAction('reject')}
+                    >
+                      Reject request
+                    </Button>
+                  </>
+                )}
+                {selectedRequest.state === 'PENDING' &&
+                  selectedRequest.requesterId === identity.id && (
+                    <Button
+                      secondary
+                      icon="x"
+                      disabled={busy}
+                      onClick={() => void requestAction('cancel')}
+                    >
+                      Cancel request
+                    </Button>
+                  )}
+                {selectedRequest.payment && (
+                  <Button
+                    icon="arrow-right"
+                    disabled={busy}
+                    onClick={() => openRequestPayment(selectedRequest)}
+                  >
+                    {selectedRequest.payerId === identity.id &&
+                    selectedRequest.payment.state === 'REQUIRES_AUTHORIZATION'
+                      ? 'Continue authorization'
+                      : 'View payment'}
+                  </Button>
+                )}
+                <Button
+                  secondary
+                  icon="refresh-cw"
+                  disabled={busy}
+                  onClick={() => void run(refresh)}
+                >
+                  Refresh request
+                </Button>
+                <Button secondary disabled={busy} onClick={() => navigate('requests')}>
+                  Back to requests
                 </Button>
               </div>
             </section>

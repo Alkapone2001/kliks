@@ -72,7 +72,7 @@ Only one phase is authorized at a time. At each phase: inspect this plan, reposi
 4. **Directory (complete):** phone/username resolution to safe previews, explicit privacy opt-in, generic misses, rate limiting, and recipient confirmation. Never expose phone or bank details.
 5. **Core simulated payments (complete):** creation, payer/payee validation, money, persistent idempotency, simulated authorization/processing/outcomes, history, audit, database transactions, integration and concurrency tests. Still simulated.
 6. **Mobile MVP (complete):** development identity, home/send/review, mock authorization, success/failure result, activity history, visible simulation warning.
-7. **Payment requests:** create/view/accept/reject/cancel/status and simulated payment, audit/tests.
+7. **Payment requests (complete):** create/view/accept/reject/cancel/status and simulated payment, audit/tests; web/mobile request screens.
 8. **QR payments:** opaque safe payloads, generation/scanning, server resolution, recipient/amount confirmation, expiry/replay protection.
 9. **Split bills:** participants, equal/custom amounts, consistency, requests/status/cancellation.
 10. **Merchant foundation:** profiles/roles, merchant requests, static/dynamic QR concepts, history, justified refund placeholder, audit. Still simulated.
@@ -85,7 +85,7 @@ Do not implement cards, cryptocurrency, international transfers, customer wallet
 
 ## Phase completion contract
 
-Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 6, Mobile MVP complete**; Phase 7 requires explicit approval.
+Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 7, Payment Requests complete**; Phase 8 requires explicit approval.
 
 ## Handoff log
 
@@ -189,3 +189,16 @@ Update this section at the end of each project work session or approved task. Re
 - **Verified:** web lint, strict typecheck, production build, and 12 focused amount/storage tests; browser interaction checks for manual verification, test-pair setup, all bank controls, successful/pending/insufficient-funds/provider-failure/rejected payments, recipient-side history, reload restoration, and lost-response creation retry with the same idempotency key and one persisted payment. Responsive checks at 1440/768/390/320 pixels found no horizontal overflow or broken icons.
 - **Still unverified:** physical iPhone interaction and production authentication. iPhone LAN access was set aside at the user's request; it is not required for this browser preview.
 - **Next gate:** stop before Phase 7 and wait for explicit approval.
+
+### 2026-10-30: Phase 7 Payment Requests complete
+
+- **Approval:** user explicitly authorized proceeding through completion of Phase 7 and requested phone-responsive web verification. No Phase 8 or later behavior is authorized.
+- **Implemented:** persisted EUR requests with requester/payer identities, creation idempotency, safe participant-only list/detail, pending/accepted/rejected/cancelled lifecycle, live linked payment status, development-only endpoints/OpenAPI, append-only audit events, and browser/mobile request creation/review/incoming/outgoing/detail/action screens.
+- **Atomicity:** PostgreSQL row locks serialize request decisions. Acceptance creates exactly one payment through PaymentsService in the same transaction as the unique link, request state, and audit records. Concurrent/repeated acceptance reuses that payment; acceptance is not payment authorization or success. Terminal decisions do not reopen. Failed acceptance leaves no orphaned payment or partial audit trail.
+- **Safety:** verified/discoverable participants are required at creation; current payment eligibility is revalidated at acceptance. Both default accounts are required before acceptance, not before request creation. Only the payer accepts/rejects; only the requester cancels a pending request. IDs remain development-only actor claims, not production authorization. No sensitive bank/phone data is exposed, no real money moves, and no wallet balance is created.
+- **Database:** additive migration `20261030115000_payment_requests` applied to local PostgreSQL on port 5433; generated and compiled client updated. SQL constraints enforce distinct parties, positive safe EUR amounts, and accepted/payment-link consistency.
+- **Verified:** root tests (82 API including 22 request tests, 8 shared, 12 web); formatting, lint, strict typecheck, and full API/web/database/mobile build including iOS/Android exports. Request tests cover retries/conflicts, concurrent acceptance and accept/cancel races, participant restrictions, validation/privacy, guard registration, eligibility changes, payment outcomes, and rollback on audit failure. Browser checks cover creation/review, identity switch, acceptance/authorization/success, cancellation/rejection, reload/resume, and separate processing/success statuses.
+- **Responsive web:** Requests page checked at 320/390/768/1440 pixels; five-item navigation, lists and icons fit without horizontal overflow. Phone-width screenshot inspected. This verifies browser layouts, not a physical iPhone session.
+- **Runtime:** browser remains at `http://localhost:3000`; default API at `http://localhost:3001`; separate LAN API/Expo preview remains available but physical iPhone access is still unverified/deferred. Use README request testing steps; no deployment was performed.
+- **Known limits:** no production authentication, request expiry, QR/payment links, splitting, merchant flows, real provider, or production deployment. Integration tests emit a PostgreSQL driver deprecation warning under concurrency, and Turbo reports missing test-output artifacts; neither failed the gates. Mobile interaction on a physical device/emulator was not performed.
+- **Next gate:** Phase 7 is complete. Stop before Phase 8, QR payments, pending explicit approval.

@@ -88,6 +88,16 @@ Manual identity creation and development-code verification are also available. U
 
 Run the browser unit tests with `pnpm --filter @kliks/web test`; the root `pnpm test` also includes them.
 
+### Test payment requests
+
+1. Use the existing test pair, or verify two development identities and enable recipient discovery for both. Each needs a connected default Mock Bank account before acceptance, but accounts are not required merely to create a request.
+2. Select **Requests**, then **New request**. Resolve the payer by username or phone, enter the EUR amount, review both parties and the amount, and create the request.
+3. Switch to the payer identity. In **Requests / Incoming**, open the request and accept or reject it. Only the requester can cancel it, and only while it is pending.
+4. Acceptance creates exactly one simulated payment awaiting authorization. Authorize it separately in Mock Bank, choosing any supported simulated outcome. After a reload, **Continue authorization** resumes the same payment.
+5. Requests display their own status separately from their linked payment status. **ACCEPTED** does not mean paid; processing, success, failure, and payer rejection come from the payment record. Refresh to see the current API state.
+
+The mobile home screen also exposes **Payment requests**, with incoming/outgoing lists, creation/review, participant actions, and the same Mock Bank authorization flow. The browser layout adapts to phone widths; responsive browser checks do not replace physical-device testing. The deferred Windows firewall issue still needs resolution before opening the LAN preview from an actual phone.
+
 ### Mobile preview
 
 ```powershell
@@ -116,6 +126,14 @@ Payment routes are development/test-only. `POST /payments` takes verified intern
 
 The mobile MVP connects these APIs: development identity and simulated verification, recipient selection by opted-in phone/username, EUR amount and review, Mock Bank authorization, simulated result, and activity history. It stores only the development identity ID and username locally. It does not store a phone number, credentials, or balance.
 
+### Payment request API
+
+All `/payment-requests` endpoints are development/test-only and return `simulation: true`. `POST /payment-requests` takes `requesterId`, `payerId`, positive safe-integer `amountMinor`, `currency: "EUR"`, and a requester-scoped `idempotencyKey`. Both identities must be verified and discoverable. Exact creation retries return the existing request, including after a terminal decision; conflicting reuse returns 409. Self-requests are rejected.
+
+`GET /payment-requests?userId=<uuid>` lists only that participant's requests. `GET /payment-requests/{id}?userId=<uuid>` returns participant details, safe aliases, request state and live linked payment status, never phone numbers, account/provider references, or idempotency keys. Nonparticipants receive a generic 404. Caller-supplied identity IDs are a development convenience, not production authentication or authorization.
+
+`POST /payment-requests/{id}/accept`, `/reject`, and `/cancel` take `{ "userId": "<uuid>" }`. Only the payer can accept/reject, and only the requester can cancel. Acceptance row-locks the request and atomically persists the payment, link, accepted state, and audit events. Concurrent/repeated acceptance reuses one payment; rejected/cancelled requests cannot be reopened, and accepted requests cannot be cancelled. Same-decision retries are idempotent. Current participant verification, payee visibility, and both default accounts are rechecked before payment creation. Payment authorization stays on `/payments/{id}/authorize` and is never implicit in acceptance. Phase 7 adds no expiry, QR/link, split-bill, merchant, real-bank, or production-authentication behavior.
+
 ## Quality checks
 
 Run from the repository root:
@@ -132,4 +150,4 @@ pnpm build
 
 ## Architecture and scope
 
-Phase 6, Mobile MVP, is complete. Do not start Phase 7 without explicit approval. Real bank/provider integration is prohibited until the external-dependency and regulatory gate described in the master plan is complete.
+Phase 7, Payment Requests, is complete, including the responsive browser companion and mobile request screens. Phase 8, QR payments, requires separate explicit approval. Real bank/provider integration remains prohibited until the external-dependency and regulatory gate described in the master plan is complete.

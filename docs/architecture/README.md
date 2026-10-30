@@ -14,6 +14,7 @@ The system starts as a TypeScript modular monolith. NestJS modules establish dom
 - **Directory** resolves public aliases to safe KLIKS recipient identities. It must not reveal private destination-account data or enable unrestricted enumeration.
 - **Banking** owns the `BankConnector` port, linked-account lifecycle, provider references, authorization boundary, initiation requests, and provider-status lookup.
 - **Payments** owns payment records, amount and parties, allowed state transitions, idempotency, and orchestration through the connector abstraction. It must not depend on `MockBankConnector` directly.
+- **Payment Requests** owns requests between verified development participants, creation idempotency, pending/accepted/rejected/cancelled decisions, and the unique link to a simulated payment. It delegates payment creation to Payments inside the same database transaction and does not authorize payments itself.
 - **Audit** defines append-oriented records for security- and payment-sensitive actions. Events must exclude credentials, OTPs, tokens, and unnecessary personal data.
 
 Identity persists internal IDs, normalized Kosovo phone numbers, canonical usernames, and phone-verification status. Its create/verification endpoints are hidden outside development/test and return only safe identity previews. There is intentionally no public phone-number lookup endpoint; directory lookup belongs to Phase 4.
@@ -28,6 +29,8 @@ Money is represented as an integer number of minor units plus an explicit curren
 
 Payment state is explicit and persisted. Only allowed transitions are applied; terminal states cannot be reopened. Payment creation validates safe integer minor units and EUR, resolves both parties and connected default accounts server-side, and enforces payer-scoped persistent idempotency with a request fingerprint. A changed request cannot reuse an existing key. Client-supplied payment status or provider reference is never trusted.
 
+Payment requests use immutable participants and EUR amounts with requester-scoped persistent creation keys. Creating requires both participants to be verified and discoverable; acceptance revalidates the payment preconditions. Request decisions lock the PostgreSQL row so acceptance/rejection/cancellation cannot race into conflicting outcomes. Acceptance reuses a deterministic payment creation key and commits its unique payment link, request state, and both modules' audit records atomically. Failed acceptance rolls all of them back. The payer must then separately authorize the simulation. `ACCEPTED` is a request decision, not a financial success state; clients display the live linked payment state separately. This transaction strategy is for the deterministic mock, not a design approval for future real-provider side effects.
+
 ## No-wallet principle
 
 KLIKS must not create a fictional customer balance, receive customer deposits, store online-banking credentials, or claim to be a bank. A future payment, if approved, must be authorized through the regulated bank or payment-provider mechanism and move between customers' existing accounts. No real money movement is implemented in this repository.
@@ -40,13 +43,13 @@ Do not implement a real connector until authentic provider documentation and san
 
 ## Data and local infrastructure
 
-PostgreSQL is the source of truth; Prisma models identity, verification challenges, directory opt-in, linked bank accounts, simulated payments, and append-only audit events in `packages/database`. Directory visibility changes and payment state transitions are audited transactionally. Redis is available for local development only and is not an authoritative store for payment state or idempotency. Docker ports bind to loopback and use development-only credentials.
+PostgreSQL is the source of truth; Prisma models identity, verification challenges, directory opt-in, linked bank accounts, simulated payments, payment requests, and append-only audit events in `packages/database`. Directory visibility changes, request decisions, and payment state transitions are audited transactionally. Redis is available for local development only and is not an authoritative store for payment state or idempotency. Docker ports bind to loopback and use development-only credentials.
 
 ## Simulation status
 
-Mock Bank is a development/test connector, not financial infrastructure. Web and mobile shells visibly state that payment flows are disabled and no money moves. Do not remove that warning while the mock is active.
+Mock Bank is a development/test connector, not financial infrastructure. Web and mobile support simulated payments and requests and visibly state that no real money moves. Do not remove that warning while the mock is active.
 
-The mobile MVP connects development identity, directory opt-in, Mock Bank account linking, recipient/amount review, simulated authorization/outcomes, and activity history. It stores only the development identity ID and username locally; no phone number, credentials, or balance is persisted on-device. Every payment remains explicitly simulated.
+The web and mobile MVPs connect development identity, directory opt-in, Mock Bank account linking, recipient/amount review, simulated authorization/outcomes, activity history, and payment requests. No phone number, credentials, verification code, or balance is persisted on-device. Every payment and request remains explicitly simulated. Browser layouts are responsive; physical-device interaction remains a separate verification step.
 
 ## External approval gate
 

@@ -18,7 +18,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const identityStorageKey = 'kliks.development-identity.v1';
 const defaultApiUrl = Platform.OS === 'android' ? 'http://10.0.2.2:3001' : 'http://localhost:3001';
@@ -34,7 +34,9 @@ type Screen =
   | 'review'
   | 'authorization'
   | 'result'
-  | 'activity';
+  | 'activity'
+  | 'requests'
+  | 'request-detail';
 type RecipientMode = 'phone' | 'username';
 type PaymentState =
   | 'CREATED'
@@ -87,6 +89,20 @@ interface Payment {
   failureCode: string | null;
   createdAt: string;
   updatedAt: string;
+  simulation: true;
+}
+
+interface PaymentRequest {
+  id: string;
+  requesterId: string;
+  payerId: string;
+  requester: { id: string; username: string };
+  payer: { id: string; username: string };
+  amountMinor: number;
+  currency: 'EUR';
+  state: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
+  payment: Payment | null;
+  createdAt: string;
   simulation: true;
 }
 
@@ -217,6 +233,12 @@ export default function App() {
   const [payment, setPayment] = useState<Payment | null>(null);
   const [mockOutcome, setMockOutcome] = useState<MockOutcome>('SUCCESS');
   const [history, setHistory] = useState<Payment[]>([]);
+  const [requests, setRequests] = useState<PaymentRequest[]>([]);
+  const [selectedRequest, setSelectedRequest] = useState<PaymentRequest | null>(null);
+  const [requestTab, setRequestTab] = useState<'incoming' | 'outgoing'>('incoming');
+  const [intent, setIntent] = useState<'send' | 'request'>('send');
+  const requestKey = useRef<{ fingerprint: string; key: string } | null>(null);
+  const inFlight = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -251,6 +273,8 @@ export default function App() {
   }, []);
 
   async function runAction(action: () => Promise<void>): Promise<void> {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     setError('');
     try {
@@ -258,6 +282,7 @@ export default function App() {
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : 'Something went wrong.');
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }
@@ -272,6 +297,79 @@ export default function App() {
   async function loadHistory(userId: string): Promise<void> {
     const result = await apiRequest<Payment[]>(`/payments?userId=${encodeURIComponent(userId)}`);
     setHistory(result);
+  }
+
+  async function loadRequests(userId: string) {
+    const result = await apiRequest<PaymentRequest[]>(
+      `/payment-requests?userId=${encodeURIComponent(userId)}`,
+    );
+    setRequests(result);
+    setSelectedRequest((current) =>
+      current ? (result.find((entry) => entry.id === current.id) ?? current) : null,
+    );
+  }
+
+  function openRequests() {
+    if (!identity) return;
+    setScreen('requests');
+    void runAction(() => loadRequests(identity.id));
+  }
+
+  function startRequest() {
+    setIntent('request');
+    setRecipient(null);
+    setRecipientQuery('');
+    setAmountText('');
+    setError('');
+    requestKey.current = null;
+    setScreen('recipient');
+  }
+
+  async function createPaymentRequest() {
+    if (!identity || !recipient) return;
+    await runAction(async () => {
+      const amountMinor = parseEuroMinorUnits(amountText);
+      if (!amountMinor) throw new Error('Enter a valid EUR amount.');
+      const fingerprint = JSON.stringify([identity.id, recipient.id, amountMinor]);
+      if (requestKey.current?.fingerprint !== fingerprint)
+        requestKey.current = { fingerprint, key: newIdempotencyKey() };
+      const created = await apiRequest<PaymentRequest>('/payment-requests', 'POST', {
+        requesterId: identity.id,
+        payerId: recipient.id,
+        amountMinor,
+        currency: 'EUR',
+        idempotencyKey: requestKey.current.key,
+      });
+      setSelectedRequest(created);
+      setScreen('request-detail');
+      setRequests((current) => [created, ...current.filter((entry) => entry.id !== created.id)]);
+    });
+  }
+
+  function openRequestPayment(entry: PaymentRequest) {
+    if (!entry.payment || !identity) return;
+    setPayment(entry.payment);
+    setRecipient({ ...entry.requester, phoneVerified: true, createdAt: entry.createdAt });
+    setMockOutcome('SUCCESS');
+    setScreen(
+      entry.payerId === identity.id && entry.payment.state === 'REQUIRES_AUTHORIZATION'
+        ? 'authorization'
+        : 'result',
+    );
+  }
+
+  async function actOnRequest(action: 'accept' | 'reject' | 'cancel') {
+    if (!identity || !selectedRequest) return;
+    await runAction(async () => {
+      const updated = await apiRequest<PaymentRequest>(
+        `/payment-requests/${selectedRequest.id}/${action}`,
+        'POST',
+        { userId: identity.id },
+      );
+      setSelectedRequest(updated);
+      setRequests((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)));
+      if (action === 'accept') openRequestPayment(updated);
+    });
   }
 
   async function createDevelopmentIdentity(): Promise<void> {
@@ -417,6 +515,7 @@ export default function App() {
   }
 
   function startSend() {
+    setIntent('send');
     const defaultAccount = accounts.find(
       (account) => account.isDefault && account.status === 'CONNECTED',
     );
@@ -443,6 +542,8 @@ export default function App() {
     setIdentity(null);
     setAccounts([]);
     setHistory([]);
+    setRequests([]);
+    setSelectedRequest(null);
     setScreen('identity');
     setError('');
   }
@@ -525,6 +626,7 @@ export default function App() {
               onDisconnect={disconnectAccount}
               onSend={startSend}
               onActivity={openActivity}
+              onRequests={openRequests}
               onSignOut={signOutDevelopmentIdentity}
             />
           ) : null}
@@ -564,7 +666,9 @@ export default function App() {
               fontRegular={fontRegular}
               fontSemibold={fontSemibold}
               fontBold={fontBold}
-              onCreate={createSimulatedPayment}
+              requesting={intent === 'request'}
+              requesterUsername={identity?.username ?? ''}
+              onCreate={intent === 'request' ? createPaymentRequest : createSimulatedPayment}
               onBack={() => setScreen('amount')}
             />
           ) : null}
@@ -595,6 +699,167 @@ export default function App() {
               onActivity={openActivity}
               onSendAnother={startSend}
             />
+          ) : null}
+
+          {screen === 'requests' && identity ? (
+            <View style={styles.content}>
+              <Text style={[styles.sectionTitle, fontBold]}>Payment requests</Text>
+              <SimulationNotice compact />
+              <View style={styles.segmented}>
+                <SegmentButton
+                  label="Incoming"
+                  selected={requestTab === 'incoming'}
+                  onPress={() => setRequestTab('incoming')}
+                />
+                <SegmentButton
+                  label="Outgoing"
+                  selected={requestTab === 'outgoing'}
+                  onPress={() => setRequestTab('outgoing')}
+                />
+              </View>
+              {requests
+                .filter(
+                  (entry) =>
+                    (requestTab === 'incoming' ? entry.payerId : entry.requesterId) === identity.id,
+                )
+                .map((entry) => (
+                  <Pressable
+                    key={entry.id}
+                    accessibilityRole="button"
+                    disabled={busy}
+                    onPress={() => {
+                      setSelectedRequest(entry);
+                      setScreen('request-detail');
+                    }}
+                    style={styles.historyRow}
+                  >
+                    <View style={styles.historyMain}>
+                      <Text style={[styles.accountName, fontSemibold]}>
+                        @
+                        {requestTab === 'incoming'
+                          ? entry.requester.username
+                          : entry.payer.username}
+                      </Text>
+                      <Text style={[styles.accountMeta, fontRegular]}>Request: {entry.state}</Text>
+                      {entry.payment && (
+                        <Text style={[styles.accountMeta, fontRegular]}>
+                          Payment: {entry.payment.state.replaceAll('_', ' ')}
+                        </Text>
+                      )}
+                    </View>
+                    <Text style={[styles.historyAmount, fontSemibold]}>
+                      {formatEuroMinorUnits(entry.amountMinor)}
+                    </Text>
+                  </Pressable>
+                ))}
+              {!requests.some(
+                (entry) =>
+                  (requestTab === 'incoming' ? entry.payerId : entry.requesterId) === identity.id,
+              ) && (
+                <Text style={[styles.secondaryBody, fontRegular]}>No {requestTab} requests.</Text>
+              )}
+              <ActionButton label="New request" disabled={busy} onPress={startRequest} />
+              <ActionButton
+                label="Refresh requests"
+                kind="secondary"
+                disabled={busy}
+                onPress={() => runAction(() => loadRequests(identity.id))}
+              />
+              <ActionButton
+                label="Back home"
+                kind="secondary"
+                disabled={busy}
+                onPress={() => setScreen('home')}
+              />
+            </View>
+          ) : null}
+
+          {screen === 'request-detail' && identity && selectedRequest ? (
+            <View style={styles.content}>
+              <Text style={[styles.sectionTitle, fontBold]}>Request details</Text>
+              <SimulationNotice compact />
+              <ReviewRow
+                label="REQUESTED BY"
+                value={`@${selectedRequest.requester.username}`}
+                fontRegular={fontRegular}
+                fontSemibold={fontSemibold}
+              />
+              <ReviewRow
+                label="PAYER"
+                value={`@${selectedRequest.payer.username}`}
+                fontRegular={fontRegular}
+                fontSemibold={fontSemibold}
+              />
+              <ReviewRow
+                label="AMOUNT"
+                value={formatEuroMinorUnits(selectedRequest.amountMinor)}
+                prominent
+                fontRegular={fontRegular}
+                fontSemibold={fontSemibold}
+                fontBold={fontBold}
+              />
+              <ReviewRow
+                label="REQUEST STATUS"
+                value={selectedRequest.state}
+                fontRegular={fontRegular}
+                fontSemibold={fontSemibold}
+              />
+              <ReviewRow
+                label="PAYMENT STATUS"
+                value={selectedRequest.payment?.state.replaceAll('_', ' ') ?? 'No payment created'}
+                fontRegular={fontRegular}
+                fontSemibold={fontSemibold}
+              />
+              <Text style={[styles.accountMeta, fontRegular]}>Reference: {selectedRequest.id}</Text>
+              {selectedRequest.state === 'PENDING' && selectedRequest.payerId === identity.id ? (
+                <>
+                  <ActionButton
+                    label="Accept request"
+                    disabled={busy}
+                    onPress={() => actOnRequest('accept')}
+                  />
+                  <ActionButton
+                    label="Reject request"
+                    kind="secondary"
+                    disabled={busy}
+                    onPress={() => actOnRequest('reject')}
+                  />
+                </>
+              ) : null}
+              {selectedRequest.state === 'PENDING' &&
+              selectedRequest.requesterId === identity.id ? (
+                <ActionButton
+                  label="Cancel request"
+                  kind="secondary"
+                  disabled={busy}
+                  onPress={() => actOnRequest('cancel')}
+                />
+              ) : null}
+              {selectedRequest.payment ? (
+                <ActionButton
+                  label={
+                    selectedRequest.payerId === identity.id &&
+                    selectedRequest.payment.state === 'REQUIRES_AUTHORIZATION'
+                      ? 'Continue authorization'
+                      : 'View payment'
+                  }
+                  disabled={busy}
+                  onPress={() => openRequestPayment(selectedRequest)}
+                />
+              ) : null}
+              <ActionButton
+                label="Refresh request"
+                kind="secondary"
+                disabled={busy}
+                onPress={() => runAction(() => loadRequests(identity.id))}
+              />
+              <ActionButton
+                label="Back to requests"
+                kind="secondary"
+                disabled={busy}
+                onPress={openRequests}
+              />
+            </View>
           ) : null}
 
           {screen === 'activity' && identity ? (
@@ -750,6 +1015,7 @@ function HomeScreen({
   onDisconnect,
   onSend,
   onActivity,
+  onRequests,
   onSignOut,
 }: {
   identity: Identity;
@@ -767,6 +1033,7 @@ function HomeScreen({
   onDisconnect: (account: LinkedAccount) => void;
   onSend: () => void;
   onActivity: () => void;
+  onRequests: () => void;
   onSignOut: () => void;
 }) {
   return (
@@ -868,6 +1135,12 @@ function HomeScreen({
             : 'Connect and set a Mock Bank account as default to start a payment simulation.'}
         </Text>
         <ActionButton disabled={busy || !defaultAccount} label="Send with KLIKS" onPress={onSend} />
+        <ActionButton
+          disabled={busy}
+          kind="secondary"
+          label="Payment requests"
+          onPress={onRequests}
+        />
         <Pressable accessibilityRole="button" onPress={onActivity} style={styles.secondaryAction}>
           <Text style={[styles.link, fontSemibold]}>View activity</Text>
         </Pressable>
@@ -981,6 +1254,8 @@ function ReviewScreen({
   fontBold,
   onCreate,
   onBack,
+  requesting = false,
+  requesterUsername,
 }: {
   recipient: RecipientPreview;
   amountMinor: number;
@@ -991,20 +1266,26 @@ function ReviewScreen({
   fontBold: object | undefined;
   onCreate: () => void;
   onBack: () => void;
+  requesting?: boolean;
+  requesterUsername?: string;
 }) {
   return (
     <View style={styles.content}>
-      <StepHeader title="Review before authorizing" step="03 / 03" onBack={onBack} />
+      <StepHeader
+        title={requesting ? 'Review payment request' : 'Review before authorizing'}
+        step="03 / 03"
+        onBack={onBack}
+      />
       <View style={styles.reviewCard}>
         <ReviewRow
-          label="TO"
+          label={requesting ? 'PAYER' : 'TO'}
           value={`@${recipient.username}`}
           fontRegular={fontRegular}
           fontSemibold={fontSemibold}
         />
         <ReviewRow
-          label="FROM"
-          value={payerAccount?.displayName ?? 'Mock Bank'}
+          label={requesting ? 'REQUESTED BY' : 'FROM'}
+          value={requesting ? `@${requesterUsername}` : (payerAccount?.displayName ?? 'Mock Bank')}
           fontRegular={fontRegular}
           fontSemibold={fontSemibold}
         />
@@ -1023,7 +1304,13 @@ function ReviewScreen({
       </View>
       <ActionButton
         disabled={busy}
-        label={busy ? 'Creating simulation...' : 'Continue to Mock Bank'}
+        label={
+          busy
+            ? 'Creating simulation...'
+            : requesting
+              ? 'Create payment request'
+              : 'Continue to Mock Bank'
+        }
         onPress={onCreate}
       />
     </View>

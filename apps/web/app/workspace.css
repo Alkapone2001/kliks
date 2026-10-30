@@ -660,6 +660,33 @@ form > .action {
   padding-top: 12px;
   animation: appear 0.2s ease-out;
 }
+.request-tabs {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 12px;
+}
+.request-tabs button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: 13px;
+}
+.request-tabs button[aria-selected='true'] {
+  border-bottom-color: var(--green);
+  color: var(--green);
+}
+.request-status {
+  display: grid;
+  gap: 7px;
+  font-size: 10px;
+  color: var(--muted);
+}
 .flow-section .section-title {
   margin-bottom: 30px;
 }
@@ -885,7 +912,7 @@ dd {
   }
   .sidebar nav {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     padding-bottom: 12px;
   }
@@ -976,6 +1003,13 @@ dd {
   .transaction .state {
     grid-column: 1 / -1;
     margin-left: 47px;
+  }
+  .transaction .request-status {
+    grid-column: 1 / -1;
+    margin-left: 47px;
+  }
+  .request-status .state {
+    margin-left: 0;
   }
   .transaction-amount {
     max-width: 120px;

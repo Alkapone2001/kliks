@@ -16,7 +16,11 @@ export type AuditEventType =
   | 'PAYMENT_SUCCEEDED'
   | 'PAYMENT_REJECTED'
   | 'PAYMENT_FAILED'
-  | 'PAYMENT_CANCELLED';
+  | 'PAYMENT_CANCELLED'
+  | 'PAYMENT_REQUEST_CREATED'
+  | 'PAYMENT_REQUEST_ACCEPTED'
+  | 'PAYMENT_REQUEST_REJECTED'
+  | 'PAYMENT_REQUEST_CANCELLED';
 
 export type AuditMetadata = Readonly<Record<string, string | number | boolean | null>>;
 
