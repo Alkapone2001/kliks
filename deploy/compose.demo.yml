@@ -1,0 +1,104 @@
+name: kliks-demo
+
+x-app: &app
+  image: kliks-demo:${RELEASE_SHA:?Set RELEASE_SHA}
+  build:
+    context: ..
+    dockerfile: deploy/Dockerfile.demo
+  init: true
+  restart: unless-stopped
+  security_opt:
+    - no-new-privileges:true
+
+x-database: &database
+  DATABASE_URL: postgresql://kliks:${DB_PASSWORD:?Set a hexadecimal DB_PASSWORD}@postgres:5432/kliks?schema=public
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kliks
+      POSTGRES_DB: kliks
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kliks -d kliks']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  migrate:
+    <<: *app
+    restart: 'no'
+    profiles: ['tools']
+    command: ['pnpm', '--filter', '@kliks/database', 'exec', 'prisma', 'migrate', 'deploy']
+    environment:
+      <<: *database
+    depends_on:
+      postgres:
+        condition: service_healthy
+  api:
+    <<: *app
+    command: ['node', 'apps/api/dist/main.js']
+    environment:
+      <<: *database
+      NODE_ENV: development
+      PORT: '3001'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+  web:
+    <<: *app
+    command: ['pnpm', '--filter', '@kliks/web', 'exec', 'next', 'start', '--hostname', '0.0.0.0']
+    environment:
+      NODE_ENV: production
+      API_URL: http://api:3001
+      NEXT_TELEMETRY_DISABLED: '1'
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      DEMO_HOSTNAME: ${DEMO_HOSTNAME:?Set DEMO_HOSTNAME}
+      DEMO_USER: ${DEMO_USER:?Set DEMO_USER}
+      DEMO_PASSWORD_HASH: ${DEMO_PASSWORD_HASH:?Set a Caddy bcrypt hash}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  caddy-data:
+  caddy-config:

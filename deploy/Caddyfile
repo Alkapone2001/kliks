@@ -1,0 +1,12 @@
+{$DEMO_HOSTNAME} {
+	basic_auth {
+		{$DEMO_USER} {$DEMO_PASSWORD_HASH}
+	}
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy no-referrer
+		-Server
+	}
+	encode zstd gzip
+	reverse_proxy web:3000
+}

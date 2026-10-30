@@ -1,0 +1,16 @@
+.git
+**/node_modules
+**/.next
+**/.turbo
+**/dist
+**/coverage
+**/.expo
+packages/database/src/generated
+.env*
+**/.env*
+!**/.env.example
+**/*.key
+**/*.pem
+**/*.log
+**/id_ed25519*
+**/id_rsa*
