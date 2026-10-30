@@ -2,8 +2,24 @@ import type { Money } from '@kliks/shared';
 
 export interface PaymentInitiationRequest {
   paymentId: string;
+  sourceReference: string;
   destinationReference: string;
   amount: Money;
+}
+
+export type MockPaymentOutcome = 'SUCCESS' | 'PENDING' | 'INSUFFICIENT_FUNDS' | 'PROVIDER_FAILURE';
+
+export interface PaymentAuthorizationRequest {
+  providerReference: string;
+  decision: MockAuthorizationDecision;
+  outcome: MockPaymentOutcome;
+}
+
+export interface PaymentAuthorizationResult {
+  providerReference: string;
+  status: 'PROCESSING' | 'SUCCEEDED' | 'REJECTED' | 'FAILED';
+  failureCode?: 'USER_REJECTED' | 'INSUFFICIENT_FUNDS' | 'PROVIDER_FAILURE';
+  simulation: true;
 }
 
 export type MockAuthorizationDecision = 'APPROVE' | 'REJECT';
@@ -33,7 +49,7 @@ export interface AccountDisconnectionResult {
 
 export interface PaymentInitiationResult {
   providerReference: string;
-  status: 'PENDING';
+  status: 'REQUIRES_AUTHORIZATION';
   simulation: true;
 }
 
@@ -51,6 +67,7 @@ export interface BankConnector {
   ): Promise<AccountAuthorizationResult>;
   disconnectAccount(providerAccountReference: string): Promise<AccountDisconnectionResult>;
   initiatePayment(request: PaymentInitiationRequest): Promise<PaymentInitiationResult>;
+  authorizePayment(request: PaymentAuthorizationRequest): Promise<PaymentAuthorizationResult>;
   getPaymentStatus(providerReference: string): Promise<ProviderPaymentStatus>;
 }
 

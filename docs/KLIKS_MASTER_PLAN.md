@@ -70,7 +70,7 @@ Only one phase is authorized at a time. At each phase: inspect this plan, reposi
 2. **Identity (complete):** persisted user IDs, normalized Kosovo phone numbers, canonical unique usernames, development-only verification, API endpoints, and privacy-aware responses/tests. No production SMS, authentication, public lookup, or bank connection.
 3. **Mock bank connection (complete):** linked-account model and simulated authorization, safe display, default/disconnect/status, audit/tests. No real bank.
 4. **Directory (complete):** phone/username resolution to safe previews, explicit privacy opt-in, generic misses, rate limiting, and recipient confirmation. Never expose phone or bank details.
-5. **Core simulated payments:** creation, payer/payee validation, money, persistent idempotency, simulated authorization/processing/outcomes, history, audit, database transactions, integration and concurrency tests. Still simulated.
+5. **Core simulated payments (complete):** creation, payer/payee validation, money, persistent idempotency, simulated authorization/processing/outcomes, history, audit, database transactions, integration and concurrency tests. Still simulated.
 6. **Mobile MVP:** development identity, home/send/review, mock authorization, result/history, visible simulation warning.
 7. **Payment requests:** create/view/accept/reject/cancel/status and simulated payment, audit/tests.
 8. **QR payments:** opaque safe payloads, generation/scanning, server resolution, recipient/amount confirmation, expiry/replay protection.
@@ -85,7 +85,7 @@ Do not implement cards, cryptocurrency, international transfers, customer wallet
 
 ## Phase completion contract
 
-Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 4, Directory complete**; Phase 5 requires explicit approval.
+Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 5, Core Simulated Payments complete**; Phase 6 requires explicit approval.
 
 ## Handoff log
 
@@ -141,3 +141,15 @@ Update this section at the end of each project work session or approved task. Re
 - **Local runtime:** API smoke-tested at `http://localhost:3003`; PostgreSQL at `localhost:5433`. Synthetic smoke identities and visibility audit rows were removed. The main preview API port 3001 is occupied by a stale listener; do not stop an unidentified process.
 - **Known constraints:** no authentication exists yet, so Directory remains dev/test-only. The in-memory throttle resets on process restart and is unsuitable for production or multiple replicas.
 - **Next approval point:** Phase 4 is complete. Stop and wait for explicit approval before Phase 5, Core Simulated Payments.
+
+### 2026-10-30: Phase 5 Core Simulated Payments complete
+
+- **Approved phase:** Phase 5 only. Phase 6, Mobile MVP, has not started.
+- **Implemented:** persisted simulated payments with payer/payee IDs, connected default-account references, EUR minor-unit amount, state, provider reference, failure code, `simulation` marker, and payer-scoped persistent idempotency key plus SHA-256 request fingerprint. Added validated create, mock authorization, and participant-history endpoints.
+- **Workflow:** creation validates verified payer, opted-in verified recipient, distinct identities, and connected default accounts. It stores `CREATED -> REQUIRES_AUTHORIZATION`; payer authorization simulates rejection, processing, success, insufficient funds, and generic provider failure through `BankConnector`.
+- **Idempotency and audit:** exact retries return the existing payment; conflicting key reuse returns 409; a database uniqueness constraint and transaction cover concurrent retries. State changes and safe payment audit events are committed transactionally.
+- **Privacy and safety:** payment routes are development/test-only. Responses omit linked-account IDs, provider references, idempotency keys, and phone numbers; all include `simulation: true`. No real money moves and no wallet balance is created.
+- **Verified:** Prisma generation/migration; frozen install; formatting, lint, strict typecheck; `pnpm test` (60 API tests plus 8 shared tests); API/web/mobile/database build; migration deploy; live API payment create/idempotent retry/authorize/history smoke flow.
+- **Database note:** local test environment must set `DATABASE_URL` to KLIKS Postgres on port 5433; the ignored `.env` may still point to the existing service on port 5432.
+- **Known constraints:** no production authentication, provider, reconciliation, or mobile payment workflow. Payment endpoints remain dev/test-only.
+- **Next approval point:** Phase 5 is complete. Stop and wait for explicit approval before Phase 6, Mobile MVP.

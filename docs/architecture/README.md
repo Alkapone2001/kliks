@@ -26,7 +26,7 @@ Directory visibility is opt-in and defaults to private. Only phone-verified, exp
 
 Money is represented as an integer number of minor units plus an explicit currency. JavaScript floating-point values are not authoritative. The initial supported currency is EUR; mixed-currency arithmetic and negative amounts are rejected.
 
-Payment state is explicit. Only the transitions listed in the domain model are allowed; terminal states cannot be reopened. Client-supplied payment status, amount, destination, and provider outcome must never be trusted. Payment creation will require persistent idempotency once that workflow is introduced.
+Payment state is explicit and persisted. Only allowed transitions are applied; terminal states cannot be reopened. Payment creation validates safe integer minor units and EUR, resolves both parties and connected default accounts server-side, and enforces payer-scoped persistent idempotency with a request fingerprint. A changed request cannot reuse an existing key. Client-supplied payment status or provider reference is never trusted.
 
 ## No-wallet principle
 
@@ -34,13 +34,13 @@ KLIKS must not create a fictional customer balance, receive customer deposits, s
 
 ## Bank connector boundary
 
-Payments depend on the typed `BankConnector` port, registered by a Nest injection token. The Banking module binds that token to `MockBankConnector`. Every mock result explicitly identifies itself as simulated. The mock supports deterministic account connection/authorization/disconnection and pending/not-found payment status. No real institution, provider, or production connector is represented.
+Payments depend on the typed `BankConnector` port, registered by a Nest injection token, never directly on `MockBankConnector`. The Banking module binds that token to the mock. Every result explicitly identifies itself as simulated. The mock supports deterministic account lifecycle plus payment authorization, processing, success, rejection, insufficient funds, generic failure, and status outcomes. No real institution, provider, or production connector is represented.
 
 Do not implement a real connector until authentic provider documentation and sandbox access, operating responsibilities, authorization requirements, security constraints, and payment-status semantics have been reviewed at the external-dependency gate (Phase 11).
 
 ## Data and local infrastructure
 
-PostgreSQL is the source of truth; Prisma models identity, verification challenges, directory opt-in, linked bank accounts, and append-only audit events in `packages/database`. Directory visibility changes are audited transactionally. Redis is available for local development only and is not an authoritative store for payment state. Docker ports bind to loopback and use development-only credentials.
+PostgreSQL is the source of truth; Prisma models identity, verification challenges, directory opt-in, linked bank accounts, simulated payments, and append-only audit events in `packages/database`. Directory visibility changes and payment state transitions are audited transactionally. Redis is available for local development only and is not an authoritative store for payment state or idempotency. Docker ports bind to loopback and use development-only credentials.
 
 ## Simulation status
 

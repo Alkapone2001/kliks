@@ -92,6 +92,10 @@ Mock Bank account endpoints use the same development/test-only guard and require
 
 Directory routes are development/test-only until authentication exists. New identities are private by default. `POST /directory/visibility` takes `{ "userId": "<uuid>", "enabled": true }`; enabling requires verified phone status and opt-out is immediate. `POST /directory/resolve/phone` takes `{ "phoneNumber": "044..." }`; `POST /directory/resolve/username` takes `{ "username": "..." }`. Successful responses include only the internal recipient ID, canonical username, verified status, and creation time. Unknown, malformed, or unlisted recipients all return the same 404. Phone numbers and linked-bank details are never returned. Directory requests are limited to 30 per IP per minute in the current API process; this in-memory guard is development-only, not a production/distributed abuse control.
 
+### Simulated payments
+
+Payment routes are development/test-only. `POST /payments` takes verified internal `payerId` and opted-in `payeeId`, positive `amountMinor`, `currency` (`EUR`), and a payer-scoped `idempotencyKey`. The payer and recipient must each have a connected default Mock Bank account. Exact retries return the original payment; reusing the key with different request data returns `409`. `POST /payments/{id}/authorize` takes `payerId`, `decision` (`APPROVE` or `REJECT`), and optional mock `outcome` (`SUCCESS`, `PENDING`, `INSUFFICIENT_FUNDS`, `PROVIDER_FAILURE`). `GET /payments?userId=<uuid>` returns participant history. Every result is marked `simulation: true`; no real funds move and bank references are omitted.
+
 ## Quality checks
 
 Run from the repository root:
@@ -112,4 +116,4 @@ pnpm build
 - [Master product and engineering plan](docs/KLIKS_MASTER_PLAN.md)
 - [Architecture decision records](docs/decisions/README.md)
 
-Phase 4, Directory, is complete. Do not start Phase 5 without explicit approval. Real bank/provider integration is prohibited until the external-dependency and regulatory gate described in the master plan is complete.
+Phase 5, Core Simulated Payments, is complete. Do not start Phase 6 without explicit approval. Real bank/provider integration is prohibited until the external-dependency and regulatory gate described in the master plan is complete.

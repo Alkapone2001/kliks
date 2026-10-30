@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import type {
   BankConnector,
   MockAuthorizationDecision,
+  PaymentAuthorizationRequest,
   PaymentInitiationRequest,
 } from './bank-connector.js';
 
@@ -35,9 +36,49 @@ export class MockBankConnector implements BankConnector {
   async initiatePayment(request: PaymentInitiationRequest) {
     return {
       providerReference: `mock_${request.paymentId}`,
-      status: 'PENDING' as const,
+      status: 'REQUIRES_AUTHORIZATION' as const,
       simulation: true as const,
     };
+  }
+
+  async authorizePayment(request: PaymentAuthorizationRequest) {
+    if (request.decision === 'REJECT') {
+      return {
+        providerReference: request.providerReference,
+        status: 'REJECTED' as const,
+        failureCode: 'USER_REJECTED' as const,
+        simulation: true as const,
+      };
+    }
+
+    switch (request.outcome) {
+      case 'SUCCESS':
+        return {
+          providerReference: request.providerReference,
+          status: 'SUCCEEDED' as const,
+          simulation: true as const,
+        };
+      case 'PENDING':
+        return {
+          providerReference: request.providerReference,
+          status: 'PROCESSING' as const,
+          simulation: true as const,
+        };
+      case 'INSUFFICIENT_FUNDS':
+        return {
+          providerReference: request.providerReference,
+          status: 'FAILED' as const,
+          failureCode: 'INSUFFICIENT_FUNDS' as const,
+          simulation: true as const,
+        };
+      case 'PROVIDER_FAILURE':
+        return {
+          providerReference: request.providerReference,
+          status: 'FAILED' as const,
+          failureCode: 'PROVIDER_FAILURE' as const,
+          simulation: true as const,
+        };
+    }
   }
 
   async getPaymentStatus(providerReference: string) {

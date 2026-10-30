@@ -14,6 +14,16 @@ enum LinkedBankAccountStatus {
   DISCONNECTED
 }
 
+enum PaymentState {
+  CREATED
+  REQUIRES_AUTHORIZATION
+  PROCESSING
+  SUCCEEDED
+  REJECTED
+  FAILED
+  CANCELLED
+}
+
 model User {
   id                  String                      @id @default(uuid()) @db.Uuid
   phoneNumber         String                      @unique @map("phone_number") @db.VarChar(16)
@@ -24,6 +34,8 @@ model User {
   updatedAt           DateTime                    @updatedAt @map("updated_at")
   verificationChallenges PhoneVerificationChallenge[]
   linkedBankAccounts     LinkedBankAccount[]
+  paymentsInitiated      Payment[]                   @relation("PaymentsAsPayer")
+  paymentsReceived       Payment[]                   @relation("PaymentsAsPayee")
 
   @@map("users")
 }
@@ -53,6 +65,8 @@ model LinkedBankAccount {
   createdAt                  DateTime                @default(now()) @map("created_at")
   updatedAt                  DateTime                @updatedAt @map("updated_at")
   user                       User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentsAsPayer            Payment[]                @relation("PaymentPayerAccount")
+  paymentsAsPayee            Payment[]                @relation("PaymentPayeeAccount")
 
   @@index([userId, connectionStatus])
   @@index([userId, createdAt])
@@ -69,4 +83,31 @@ model AuditEventRecord {
   @@index([entityId, occurredAt])
   @@index([eventType, occurredAt])
   @@map("audit_events")
+}
+
+model Payment {
+  id                     String              @id @default(uuid()) @db.Uuid
+  payerId                String              @map("payer_id") @db.Uuid
+  payeeId                String              @map("payee_id") @db.Uuid
+  payerAccountId         String              @map("payer_account_id") @db.Uuid
+  payeeAccountId         String              @map("payee_account_id") @db.Uuid
+  idempotencyKey         String              @map("idempotency_key") @db.VarChar(128)
+  requestFingerprint     String              @map("request_fingerprint") @db.Char(64)
+  amountMinor            BigInt              @map("amount_minor") @db.BigInt
+  currency               String              @db.Char(3)
+  state                  PaymentState        @default(CREATED)
+  providerReference      String?             @unique @map("provider_reference") @db.VarChar(100)
+  failureCode            String?             @map("failure_code") @db.VarChar(40)
+  simulation             Boolean             @default(true)
+  createdAt              DateTime            @default(now()) @map("created_at")
+  updatedAt              DateTime            @updatedAt @map("updated_at")
+  payer                  User                @relation("PaymentsAsPayer", fields: [payerId], references: [id], onDelete: Restrict)
+  payee                  User                @relation("PaymentsAsPayee", fields: [payeeId], references: [id], onDelete: Restrict)
+  payerAccount           LinkedBankAccount   @relation("PaymentPayerAccount", fields: [payerAccountId], references: [id], onDelete: Restrict)
+  payeeAccount           LinkedBankAccount   @relation("PaymentPayeeAccount", fields: [payeeAccountId], references: [id], onDelete: Restrict)
+
+  @@unique([payerId, idempotencyKey])
+  @@index([payerId, createdAt])
+  @@index([payeeId, createdAt])
+  @@map("payments")
 }

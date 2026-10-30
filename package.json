@@ -6,11 +6,11 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "dev": "turbo run dev --parallel",
-    "build": "turbo run build",
+    "dev": "pnpm db:generate && turbo run dev --parallel",
+    "build": "pnpm db:generate && turbo run build",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
+    "typecheck": "pnpm db:generate && turbo run typecheck",
+    "test": "pnpm db:generate && turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "db:generate": "pnpm --filter @kliks/database db:generate",

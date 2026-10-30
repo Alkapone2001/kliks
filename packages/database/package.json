@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "build": "pnpm db:generate && tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json",
     "lint": "eslint prisma.config.ts src",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "db:generate": "dotenv -e ../../.env -- prisma generate",
