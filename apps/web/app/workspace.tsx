@@ -14,6 +14,8 @@ import {
   readIdentities,
   type SavedIdentity,
 } from './payment-utils';
+import Icon from './ui-icon';
+import QrPayments from './qr-payments';
 
 type Screen =
   | 'signin'
@@ -26,7 +28,8 @@ type Screen =
   | 'result'
   | 'activity'
   | 'requests'
-  | 'request-detail';
+  | 'request-detail'
+  | 'qr';
 type Outcome = 'SUCCESS' | 'PENDING' | 'INSUFFICIENT_FUNDS' | 'PROVIDER_FAILURE';
 interface Challenge {
   challengeId: string;
@@ -39,7 +42,7 @@ interface Account {
   isDefault: boolean;
   status: 'PENDING_AUTHORIZATION' | 'CONNECTED' | 'REJECTED' | 'DISCONNECTED';
 }
-interface Payment {
+export interface Payment {
   id: string;
   payerId: string;
   payeeId: string;
@@ -99,19 +102,6 @@ async function request<T>(path: string, method = 'GET', body?: unknown): Promise
     );
   }
   return payload as T;
-}
-
-function Icon({ name }: { name: string }) {
-  return (
-    <img
-      className="icon"
-      src={`https://cdn.jsdelivr.net/npm/lucide-static@0.468.0/icons/${name}.svg`}
-      width="20"
-      height="20"
-      alt=""
-      aria-hidden="true"
-    />
-  );
 }
 
 function Button({
@@ -646,6 +636,7 @@ export default function Workspace() {
                   ['overview', 'layout-dashboard', 'Overview'],
                   ['send', 'arrow-up-right', 'Send'],
                   ['requests', 'arrow-down-left', 'Requests'],
+                  ['qr', 'qr-code', 'QR pay'],
                   ['activity', 'receipt-text', 'Activity'],
                   ['accounts', 'landmark', 'Bank accounts'],
                 ] as const
@@ -1307,6 +1298,22 @@ export default function Workspace() {
                 </Button>
               </div>
             </section>
+          )}
+
+          {identity && screen === 'qr' && (
+            <QrPayments
+              key={identity.id}
+              identity={identity}
+              api={request}
+              onBusyChange={setBusy}
+              onPayment={(created, resolvedRecipient) => {
+                setPayment(created);
+                setRecipient(resolvedRecipient);
+                setOutcome('SUCCESS');
+                setIntent('send');
+                setScreen(created.state === 'REQUIRES_AUTHORIZATION' ? 'authorize' : 'result');
+              }}
+            />
           )}
 
           {identity && screen === 'requests' && (

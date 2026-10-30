@@ -134,6 +134,24 @@ All `/payment-requests` endpoints are development/test-only and return `simulati
 
 `POST /payment-requests/{id}/accept`, `/reject`, and `/cancel` take `{ "userId": "<uuid>" }`. Only the payer can accept/reject, and only the requester can cancel. Acceptance row-locks the request and atomically persists the payment, link, accepted state, and audit events. Concurrent/repeated acceptance reuses one payment; rejected/cancelled requests cannot be reopened, and accepted requests cannot be cancelled. Same-decision retries are idempotent. Current participant verification, payee visibility, and both default accounts are rechecked before payment creation. Payment authorization stays on `/payments/{id}/authorize` and is never implicit in acceptance. Phase 7 adds no expiry, QR/link, split-bill, merchant, real-bank, or production-authentication behavior.
 
+### Test QR payments
+
+1. Open `http://localhost:3000` and select **QR pay / My codes**. The receiving identity must be verified and opted in to recipient discovery. Enter an optional EUR amount and select **Generate QR**. With no proposed amount, the payer chooses the amount later.
+2. Download the PNG or copy the selectable QR payload. Switch to a different development identity and open **QR pay / Scan / pay**. Upload that PNG, paste the payload and select **Resolve QR**, or start the camera. Browser camera access requires `localhost` or HTTPS and permission; uploading/pasting works without a camera.
+3. Check the server-resolved recipient and amount. Fixed proposed amounts cannot be changed. Select **Review QR payment**, then **Continue to Mock Bank**, and separately authorize or reject the simulation.
+4. Each QR expires after 15 minutes and is single-use. Resolving/scanning does not consume it; confirmation atomically creates one payment and consumes it. Rejection/failure does not reopen the code: generate another code for a new attempt. Exact retries by the same payer/amount recover the existing payment, including after expiry; different-payer or changed-amount replay cannot create another payment.
+5. **My codes** shows available, expired, used, or unavailable status. Loss of recipient verification/discovery makes an unused code unavailable. Both participants need connected default Mock Bank accounts at payment confirmation. No QR code encodes phone numbers, usernames, amounts, bank references, credentials, or access tokens.
+
+Mobile home exposes **QR payments** with generation, selectable/shareable payloads, native QR camera scanning, pasted-payload fallback, and the same recipient/amount confirmation and Mock Bank authorization. Camera access is requested only when starting the scanner; microphone/audio recording is disabled. Payment QR codes are not Expo launch QR codes: open KLIKS first and use its scanner. No universal-link/app-link hosting or public deployment is configured.
+
+### QR payment API
+
+All `/qr-payments` endpoints are development/test-only and results are marked `simulation: true`. `POST /qr-payments` takes verified/discoverable `ownerId`, `currency: "EUR"`, an owner-scoped `idempotencyKey`, and optional positive safe-integer `amountMinor`. It returns an opaque `kliks:pay:v1:<session-uuid>` payload, locally encoded PNG data URL, expiry and status. Exact creation retries recover the same session; conflicting key reuse returns 409. `GET /qr-payments?userId=<owner>` lists the most recent 50 codes, and `GET /qr-payments/{id}?userId=<owner>` returns that owner's QR image.
+
+`POST /qr-payments/resolve` takes `{ "payerId": "<uuid>", "payload": "kliks:pay:v1:<opaque-uuid>" }`. It returns a safe verified recipient, optional proposed amount, currency and expiry without consuming the session. Unknown, unsupported, expired, consumed and hidden-recipient codes return a generic not-found response. Self-payment and unverified payer attempts are rejected. Arbitrary URLs or extra payload fields are not followed or trusted.
+
+`POST /qr-payments/pay` takes the same fields plus the confirmed positive integer `amountMinor`; it accepts no client destination/currency. A row lock serializes confirmation. The service revalidates expiry, recipient discovery/verification, proposed amount and existing payment/account rules, then atomically persists the payment, consumption link and audit records. Lost-response retries return the same payer's same-amount payment; other replays are rejected. Authorization remains a separate `/payments/{id}/authorize` action. This is a deterministic mock flow, not production authentication, real payment infrastructure or authorization to deploy publicly.
+
 ## Quality checks
 
 Run from the repository root:
@@ -150,4 +168,4 @@ pnpm build
 
 ## Architecture and scope
 
-Phase 7, Payment Requests, is complete, including the responsive browser companion and mobile request screens. Phase 8, QR payments, requires separate explicit approval. Real bank/provider integration remains prohibited until the external-dependency and regulatory gate described in the master plan is complete.
+Phase 8, QR payments, is complete with responsive browser and native QR workflows. Phase 9, Split Bills, requires separate explicit approval. Real bank/provider integration remains prohibited until the external-dependency and regulatory gate described in the master plan is complete.

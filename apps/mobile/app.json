@@ -7,6 +7,16 @@
     "platforms": ["ios", "android"],
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "plugins": ["expo-font"]
+    "plugins": [
+      "expo-font",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow KLIKS to scan payment QR codes.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
+    ]
   }
 }

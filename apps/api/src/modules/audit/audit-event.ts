@@ -20,7 +20,9 @@ export type AuditEventType =
   | 'PAYMENT_REQUEST_CREATED'
   | 'PAYMENT_REQUEST_ACCEPTED'
   | 'PAYMENT_REQUEST_REJECTED'
-  | 'PAYMENT_REQUEST_CANCELLED';
+  | 'PAYMENT_REQUEST_CANCELLED'
+  | 'QR_PAYMENT_CREATED'
+  | 'QR_PAYMENT_CONSUMED';
 
 export type AuditMetadata = Readonly<Record<string, string | number | boolean | null>>;
 

@@ -53,7 +53,7 @@ All payment creation must eventually be idempotent in persistent storage. Same-i
 
 Money uses non-negative integer minor units with mandatory currency (initially EUR). Validate supported currency and safe integer boundaries; never silently round, change currency, allow unintended negative values, or combine currencies. Serialize consistently and calculate authoritative values server-side.
 
-QR codes and payment links are future work. They may contain opaque recipient/request/session references and optional proposed amounts, never credentials, access tokens, signing keys, or sensitive account data. Resolve them server-side and confirm recipient and amount before authorization.
+QR codes and payment links may contain opaque recipient/request/session references and optional proposed amounts, never credentials, access tokens, signing keys, or sensitive account data. Resolve them server-side and confirm recipient and amount before authorization. Phase 8 implements opaque, single-use QR session references; proposed amounts remain server-side. Public link hosting and universal-link deployment are not implemented.
 
 ## Banking boundary
 
@@ -73,7 +73,7 @@ Only one phase is authorized at a time. At each phase: inspect this plan, reposi
 5. **Core simulated payments (complete):** creation, payer/payee validation, money, persistent idempotency, simulated authorization/processing/outcomes, history, audit, database transactions, integration and concurrency tests. Still simulated.
 6. **Mobile MVP (complete):** development identity, home/send/review, mock authorization, success/failure result, activity history, visible simulation warning.
 7. **Payment requests (complete):** create/view/accept/reject/cancel/status and simulated payment, audit/tests; web/mobile request screens.
-8. **QR payments:** opaque safe payloads, generation/scanning, server resolution, recipient/amount confirmation, expiry/replay protection.
+8. **QR payments (complete):** opaque safe payloads, local generation/browser/native scanning, server resolution, recipient/amount confirmation, 15-minute expiry and atomic replay protection.
 9. **Split bills:** participants, equal/custom amounts, consistency, requests/status/cancellation.
 10. **Merchant foundation:** profiles/roles, merchant requests, static/dynamic QR concepts, history, justified refund placeholder, audit. Still simulated.
 11. **External and regulatory gate:** prepare the complete external-dependency package and obtain genuine institutional information. Stop before real payments.
@@ -85,7 +85,7 @@ Do not implement cards, cryptocurrency, international transfers, customer wallet
 
 ## Phase completion contract
 
-Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 7, Payment Requests complete**; Phase 8 requires explicit approval.
+Report the completed phase, implemented work, test commands/results, architecture decisions, security notes, open risks, key files, run instructions, next recommended phase, and state that work stopped pending explicit approval. Current repository phase: **Phase 8, QR Payments complete**; Phase 9 requires explicit approval.
 
 ## Handoff log
 
@@ -202,3 +202,16 @@ Update this section at the end of each project work session or approved task. Re
 - **Runtime:** browser remains at `http://localhost:3000`; default API at `http://localhost:3001`; separate LAN API/Expo preview remains available but physical iPhone access is still unverified/deferred. Use README request testing steps; no deployment was performed.
 - **Known limits:** no production authentication, request expiry, QR/payment links, splitting, merchant flows, real provider, or production deployment. Integration tests emit a PostgreSQL driver deprecation warning under concurrency, and Turbo reports missing test-output artifacts; neither failed the gates. Mobile interaction on a physical device/emulator was not performed.
 - **Next gate:** Phase 7 is complete. Stop before Phase 8, QR payments, pending explicit approval.
+
+### 2026-10-30: Phase 8 QR Payments complete
+
+- **Approval:** user explicitly authorized Phase 8. No Phase 9 splitting or later behavior is authorized.
+- **Implemented:** persisted single-use QR sessions with optional server-side EUR amounts, owner-scoped creation idempotency, 15-minute expiry, locally generated PNG images, owner list/detail/status, strict shared payload parsing, safe server resolution, separate recipient/amount confirmation, and atomic replay-safe payment creation through PaymentsService. QR payloads contain only an opaque versioned session UUID.
+- **Clients:** responsive web QR generation/download, saved codes, ZXing camera and uploaded-image decoding, pasted payload fallback, review and payment handoff; Expo native generation/shareable payloads, CameraView QR scanning, permission-denial fallback, expiry-aware review and the same Mock Bank authorization flow. Leaving camera views releases them; iOS configuration includes the camera purpose and no microphone purpose, with Android audio recording disabled.
+- **Atomicity/safety:** row locks serialize QR confirmation. Payment, consumption link and audit commit together; failures roll back. Scanning is read-only. Same-payer/same-amount retries recover one existing payment even after expiry; different-payer/amount replay is rejected. Expiry and recipient/account eligibility are rechecked on confirmation. Fixed amounts cannot be changed. Consumed codes never reopen. Responses and UI remain visibly simulated and development-only; no financial/private identity data or credentials are encoded.
+- **Database/dependencies:** additive `20261030121000_qr_payments` migration applied to local PostgreSQL on port 5433; generated/compiled client updated. Uses `qrcode`, ZXing browser and SDK-compatible `expo-camera`, not custom encoders/decoders. QR image bytes stay local; no external QR-generation service is used.
+- **Verified:** root tests (106 API including 24 QR tests, 20 shared including 12 payload tests, 12 web; 138 total), repository lint/typecheck/formatting and complete API/web/database/mobile build including iOS/Android exports. Tests cover privacy, amount binding, owner eligibility, expiry between scan/confirmation, concurrent payers, exact retries, replay rejection, separate authorization and transactional rollback.
+- **Browser verification:** actual generated PNG uploaded and decoded, fixed/open amount review, successful authorization, payer rejection, used-code rejection, and simulated camera-denial fallback. Generator/scanner layouts fit at 320/390/768/1024/1440 pixels without horizontal overflow or broken images; phone-width screenshot inspected.
+- **Build note:** Next.js reserves `app/icon.tsx` for metadata; the shared UI component is `app/ui-icon.tsx`. Production builds pass after that rename.
+- **Runtime/limits:** web remains at `http://localhost:3000`, with QR pay navigation; no deployment. Actual camera hardware and physical iPhone interaction remain unverified. Browser cameras require localhost/HTTPS plus permission; the previous LAN firewall issue is still deferred. No production authentication, public universal links, split bills, merchants or real bank integration were introduced. Existing concurrency-driver/Turbo test-output warnings are non-failing.
+- **Next gate:** stop before Phase 9, Split Bills, pending separate explicit approval.

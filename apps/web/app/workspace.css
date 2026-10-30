@@ -687,6 +687,94 @@ form > .action {
   font-size: 10px;
   color: var(--muted);
 }
+.qr-generate-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: 40px;
+  margin: 30px 0 42px;
+}
+.qr-image-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.qr-image {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  aspect-ratio: 1;
+  background: white;
+  image-rendering: pixelated;
+}
+.qr-placeholder {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1;
+  border: 1px dashed var(--line);
+  color: var(--muted);
+  font-size: 12px;
+}
+.qr-placeholder .icon {
+  width: 48px;
+  height: 48px;
+}
+.qr-metadata {
+  margin-top: 24px;
+}
+.qr-generate-layout .flow-actions {
+  margin-top: 15px;
+}
+.qr-code-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 20px;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  padding: 18px 0;
+  text-align: left;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: transparent;
+}
+.qr-code-row strong {
+  display: block;
+  font-size: 12px;
+}
+.qr-code-row small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.qr-scan-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
+  padding-top: 24px;
+}
+.qr-scan-layout > div {
+  display: grid;
+  align-content: start;
+  gap: 22px;
+}
+.qr-scan-layout form {
+  align-content: start;
+}
+.qr-camera {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1;
+  background: #18251f;
+  object-fit: cover;
+}
 .flow-section .section-title {
   margin-bottom: 30px;
 }
@@ -912,7 +1000,7 @@ dd {
   }
   .sidebar nav {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
     padding-bottom: 12px;
   }
@@ -1031,6 +1119,11 @@ dd {
   }
   .flow-section {
     padding-top: 0;
+  }
+  .qr-generate-layout,
+  .qr-scan-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 28px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

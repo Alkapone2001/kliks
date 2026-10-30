@@ -45,6 +45,7 @@ model User {
   paymentsReceived       Payment[]                   @relation("PaymentsAsPayee")
   requestsCreated        PaymentRequest[]            @relation("RequestCreator")
   requestsReceived       PaymentRequest[]            @relation("RequestPayer")
+  qrPaymentSessions      QrPaymentSession[]
 
   @@map("users")
 }
@@ -115,6 +116,7 @@ model Payment {
   payerAccount           LinkedBankAccount   @relation("PaymentPayerAccount", fields: [payerAccountId], references: [id], onDelete: Restrict)
   payeeAccount           LinkedBankAccount   @relation("PaymentPayeeAccount", fields: [payeeAccountId], references: [id], onDelete: Restrict)
   paymentRequest         PaymentRequest?
+  qrPaymentSession       QrPaymentSession?
 
   @@unique([payerId, idempotencyKey])
   @@index([payerId, createdAt])
@@ -141,4 +143,22 @@ model PaymentRequest {
   @@index([requesterId, createdAt])
   @@index([payerId, createdAt])
   @@map("payment_requests")
+}
+
+model QrPaymentSession {
+  id                 String    @id @default(uuid()) @db.Uuid
+  ownerId            String    @map("owner_id") @db.Uuid
+  amountMinor        BigInt?   @map("amount_minor") @db.BigInt
+  currency           String    @db.Char(3)
+  idempotencyKey     String    @map("idempotency_key") @db.VarChar(128)
+  expiresAt          DateTime  @map("expires_at")
+  consumedAt         DateTime? @map("consumed_at")
+  paymentId          String?   @unique @map("payment_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at")
+  owner              User      @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  payment            Payment?  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@unique([ownerId, idempotencyKey])
+  @@index([ownerId, createdAt])
+  @@map("qr_payment_sessions")
 }

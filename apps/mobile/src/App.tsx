@@ -19,6 +19,7 @@ import {
   View,
 } from 'react-native';
 import { useEffect, useRef, useState } from 'react';
+import QrPaymentsScreen from './QrPaymentsScreen';
 
 const identityStorageKey = 'kliks.development-identity.v1';
 const defaultApiUrl = Platform.OS === 'android' ? 'http://10.0.2.2:3001' : 'http://localhost:3001';
@@ -36,7 +37,8 @@ type Screen =
   | 'result'
   | 'activity'
   | 'requests'
-  | 'request-detail';
+  | 'request-detail'
+  | 'qr';
 type RecipientMode = 'phone' | 'username';
 type PaymentState =
   | 'CREATED'
@@ -79,7 +81,7 @@ interface LinkedAccount {
   simulation: true;
 }
 
-interface Payment {
+export interface Payment {
   id: string;
   payerId: string;
   payeeId: string;
@@ -627,6 +629,7 @@ export default function App() {
               onSend={startSend}
               onActivity={openActivity}
               onRequests={openRequests}
+              onQr={() => setScreen('qr')}
               onSignOut={signOutDevelopmentIdentity}
             />
           ) : null}
@@ -698,6 +701,22 @@ export default function App() {
               onHome={() => setScreen('home')}
               onActivity={openActivity}
               onSendAnother={startSend}
+            />
+          ) : null}
+
+          {screen === 'qr' && identity ? (
+            <QrPaymentsScreen
+              key={identity.id}
+              identity={identity}
+              api={apiRequest}
+              onBusyChange={setBusy}
+              onBack={() => setScreen('home')}
+              onPayment={(created, resolvedRecipient) => {
+                setPayment(created);
+                setRecipient(resolvedRecipient);
+                setMockOutcome('SUCCESS');
+                setScreen(created.state === 'REQUIRES_AUTHORIZATION' ? 'authorization' : 'result');
+              }}
             />
           ) : null}
 
@@ -1016,6 +1035,7 @@ function HomeScreen({
   onSend,
   onActivity,
   onRequests,
+  onQr,
   onSignOut,
 }: {
   identity: Identity;
@@ -1034,6 +1054,7 @@ function HomeScreen({
   onSend: () => void;
   onActivity: () => void;
   onRequests: () => void;
+  onQr: () => void;
   onSignOut: () => void;
 }) {
   return (
@@ -1141,6 +1162,7 @@ function HomeScreen({
           label="Payment requests"
           onPress={onRequests}
         />
+        <ActionButton disabled={busy} kind="secondary" label="QR payments" onPress={onQr} />
         <Pressable accessibilityRole="button" onPress={onActivity} style={styles.secondaryAction}>
           <Text style={[styles.link, fontSemibold]}>View activity</Text>
         </Pressable>

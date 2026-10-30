@@ -5,6 +5,7 @@ import { DirectoryModule } from './modules/directory/directory.module.js';
 import { IdentityModule } from './modules/identity/identity.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
 import { PaymentRequestsModule } from './modules/payment-requests/payment-requests.module.js';
+import { QrPaymentsModule } from './modules/qr-payments/qr-payments.module.js';
 import { HealthController } from './health.controller.js';
 import { DatabaseModule } from './database/database.module.js';
 
@@ -16,6 +17,7 @@ import { DatabaseModule } from './database/database.module.js';
     BankingModule,
     PaymentsModule,
     PaymentRequestsModule,
+    QrPaymentsModule,
     AuditModule,
   ],
   controllers: [HealthController],
