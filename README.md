@@ -210,4 +210,8 @@ pnpm build
 
 ## Architecture and scope
 
-Phase 10, Merchant Foundation, is complete with responsive browser and native workflows. Phase 11, External and Regulatory Gate, requires separate explicit approval. Real bank/provider integration remains prohibited until that external-dependency and regulatory gate is genuinely satisfied; finishing the simulated MVP is not production readiness or regulatory approval.
+Phases 1-10 are complete as a simulated local MVP. Phase 11 is approved and its [external-readiness package](docs/external-dependencies/README.md) is prepared, but the external gate remains **BLOCKED** pending genuine institutional/provider evidence. Phase 11 itself is not complete and Phase 12 is not started or authorized. Real bank/provider integration remains prohibited until that gate is genuinely satisfied; finishing documents or the simulated MVP is not production readiness or regulatory approval.
+
+Start with the [exact questions and unsent outreach drafts](docs/external-dependencies/INSTITUTION_QUESTIONS.md), [capability requirements](docs/external-dependencies/API_AND_SANDBOX_REQUIREMENTS.md), and [readiness checklist](docs/external-dependencies/RISKS_AND_READINESS.md). The [evidence register](docs/external-dependencies/EVIDENCE_REGISTER.json) records 12 missing prerequisites and no claimed approvals. The founder must supply the actual entity/jurisdiction and responsible contact, identify genuine institution/provider counterparts, obtain qualified legal/regulatory review, and obtain authentic documentation plus authorized synthetic-data sandbox access. Do not send secrets or restricted/unredacted evidence through chat or commit them here.
+
+No outreach was sent, no sandbox credentials/accounts were obtained, no real connector was added and no deployment was performed during Phase 11 preparation. Existing application behavior remains simulated. The mock-only ADR and no-wallet constraint remain unchanged.

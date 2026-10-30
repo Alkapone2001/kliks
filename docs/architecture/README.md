@@ -79,3 +79,5 @@ The web and mobile MVPs connect development identity, directory opt-in, Mock Ban
 ## External approval gate
 
 Before any real bank/provider implementation, prepare the external-dependency package covering product and data flows, proposed operating responsibilities, security assumptions, exact CBK and institution questions, required API/sandbox capabilities, and unresolved legal and operational risks. Do not infer regulatory approval or invent provider behavior.
+
+The [Phase 11 preparation package](../external-dependencies/README.md) now records those artifacts, source provenance, a risk/readiness checklist and an [evidence register](../external-dependencies/EVIDENCE_REGISTER.json). Documentation preparation is complete; the external gate is BLOCKED with all 12 case-specific prerequisites missing. Official public website/contact discovery is background information, not institutional guidance or permission for KLIKS. No real connector or superseding mock-only architecture decision is authorized by this package. Phase 11 remains open pending genuine external review and evidence.

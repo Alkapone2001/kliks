@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-10-30",
+  "preparationStatus": "PREPARED",
+  "companyLegalName": null,
+  "companyJurisdiction": null,
+  "responsibleBusinessContact": null,
+  "providerLegalName": null,
+  "gateDecision": {
+    "state": "BLOCKED",
+    "approvedBy": null,
+    "approvedAt": null,
+    "reason": "Required case-specific external evidence and a reviewed human decision have not been supplied."
+  },
+  "publicSources": [
+    {
+      "id": "SOURCE-01",
+      "url": "https://bqk-kos.org/",
+      "retrievedOn": "2026-10-30",
+      "scope": "Official source discovery only; not KLIKS authorization or provider access."
+    },
+    {
+      "id": "SOURCE-02",
+      "url": "https://bqk-kos.org/kontakti/",
+      "retrievedOn": "2026-10-30",
+      "scope": "Public institutional contact routing only; no inquiry sent and no case-specific answer or approval received."
+    }
+  ],
+  "requirements": [
+    {
+      "id": "LEGAL-01",
+      "requirement": "Identified legal entity, jurisdiction and qualified case-specific review of the proposed no-custody operating model.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "id": "AUTHZ-01",
+      "requirement": "Applicable regulatory route and any required authorization, registration, approvals or partner coverage established by competent sources.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "id": "PARTNER-01",
+      "requirement": "Identified authorized institution/provider with agreed KLIKS/partner duties, permitted customer and merchant scope, and commercial/operational conditions.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "id": "DOCS-01",
+      "requirement": "Authentic versioned API and sandbox documentation covering the actual proposed account-to-account flow and institution coverage.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "id": "SANDBOX-01",
+      "requirement": "Explicitly authorized synthetic-data sandbox access and test-account route, with secrets handled outside source control and model prompts.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "id": "CONSENT-01",
+      "requirement": "Documented customer/provider authentication, bank authorization, consent, expiry/revocation, delegation and recovery responsibilities.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "id": "PRIVACY-01",
+      "requirement": "Reviewed alias-directory legality, data roles/basis, disclosure, retention/deletion, number recycling and transfer/residency requirements.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "id": "STATUS-01",
+      "requirement": "Authoritative initiation/status/finality semantics, institution and rail coverage, reconciliation data and permitted user-facing timing claims.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "id": "ERRORS-01",
+      "requirement": "Documented idempotency, timeouts, safe retry/status recovery, duplicate and out-of-order notification handling and error ownership.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "id": "DISPUTES-01",
+      "requirement": "Agreed cancellation, recall, rejection, return/refund, dispute, complaint, liability and support escalation semantics.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "id": "SECURITY-01",
+      "requirement": "Reviewed provider onboarding/security requirements and a sandbox isolation/secret-management plan, with production hardening obligations explicitly tracked.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    },
+    {
+      "id": "DECISION-01",
+      "requirement": "Named human review of all prerequisite evidence, a scoped gate decision, explicit Phase 12 approval and a reviewed superseding mock-only architecture decision.",
+      "status": "MISSING",
+      "evidence": [],
+      "reviewer": null,
+      "reviewedAt": null
+    }
+  ]
+}
