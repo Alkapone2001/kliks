@@ -2,6 +2,19 @@
 
 This stack is authorized only as an access-protected, synthetic-data demo. It does not satisfy the external/regulatory gate or authorize real payments or production service.
 
+## Active Demo
+
+- Address: `https://kliks.duckdns.org` on the explicitly authorized DigitalOcean server.
+- Separate website login is in `/root/kliks-demo-login.txt`. A private operator copy was retrieved outside the repository and opened locally; never paste it into chat or Git.
+- First healthy automatically deployed application release: `f863c1b278f4b96fa4c574d3d383a04844cfa4bf`.
+- CI run `41089932709` and automatic deployment run `41090206994` succeeded. Future pushes to `main` deploy only after successful CI.
+- The actual Droplet has 2 GiB RAM; bootstrap added 2 GiB swap and image builds use bounded Node memory/serial tasks. This is a small demo, not a high-availability setup.
+- Next.js rewrites embed the API destination at build time. Turbo's build environment must pass/hash `API_URL`; otherwise the web image incorrectly targets its own loopback address instead of `api:3001`.
+
+Verified on the server with normal TLS validation: matching Let's Encrypt certificate, authenticated page HTTP 200, authenticated API health `ok`, anonymous page/API HTTP 401. External probes confirmed ports 3001 and 5432 were not reachable; container topology publishes only the proxy. The local Windows/tooling network returned TLS trust/revocation errors or 403, so direct iPhone Safari interaction remains an operator check; never bypass a browser certificate warning.
+
+This explicitly approved protected-demo hosting task is separate from Phase 11 external/legal/provider approval. The evidence register remains BLOCKED, the mock remains the only connector, and only synthetic data is permitted.
+
 - Caddy serves the controlled hostname over HTTPS and requires Basic authentication for the entire site, including `/api/*`.
 - Only Caddy publishes ports 80/443. Web, API and PostgreSQL have no public host ports. Do not add bypass routes or expose the development API.
 - The API runs compiled JavaScript with its development-only identity/mock endpoints enabled behind the authenticated proxy. This is intentionally not production authentication or a production banking API.
@@ -19,7 +32,7 @@ bash deploy/bootstrap.sh
 bash deploy/release.sh VERIFIED_40_CHARACTER_COMMIT_SHA
 ```
 
-The bootstrap does not rotate the operator's SSH password or disable their login. The CI key is separate and restricted to the deployment receiver. Treat access to that deployment key and repository main branch as privileged server-code execution.
+The bootstrap does not rotate the operator's SSH password or disable their login. The CI key is separate and restricted to the deployment receiver. Treat access to that deployment key and repository main branch as privileged server-code execution. The deploy account has no normal shell through that key; its forced command accepts only an explicit 40-character release SHA and an archived source stream.
 
 ## Automatic Updates
 
