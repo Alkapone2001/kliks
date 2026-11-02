@@ -34,6 +34,42 @@ afterAll(async () => {
 });
 
 describe('IdentityService', () => {
+  it('resumes an existing verified private identity without duplicating it', async () => {
+    const { identity, input } = await createIdentity();
+    const challenge = await identityService.startPhoneVerification(identity.id);
+    await identityService.confirmPhoneVerification(
+      identity.id,
+      challenge.challengeId,
+      challenge.developmentCode,
+    );
+    const anotherService = new IdentityService(database);
+    const resumed = await anotherService.resumeIdentity({
+      ...input,
+      username: input.username.toUpperCase(),
+    });
+    expect(resumed).toMatchObject({
+      id: identity.id,
+      phoneVerified: true,
+      directoryListingEnabled: false,
+    });
+    expect(resumed).not.toHaveProperty('phoneNumber');
+    expect(await database.client.user.count({ where: { id: identity.id } })).toBe(1);
+  });
+
+  it('resumes an unfinished identity and uses a generic miss for wrong details', async () => {
+    const { identity, input } = await createIdentity();
+    expect(await identityService.resumeIdentity(input)).toMatchObject({
+      id: identity.id,
+      phoneVerified: false,
+    });
+    await expect(
+      identityService.resumeIdentity({ ...input, username: 'not_the_same_user' }),
+    ).rejects.toThrow('Development identity not found.');
+    await expect(
+      identityService.resumeIdentity({ ...input, phoneNumber: 'invalid' }),
+    ).rejects.toThrow('Development identity not found.');
+  });
+
   it('persists normalized identity and returns no private phone number', async () => {
     const { identity } = await createIdentity();
 

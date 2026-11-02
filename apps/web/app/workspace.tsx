@@ -15,9 +15,17 @@ import {
   type SavedIdentity,
 } from './payment-utils';
 import Icon from './ui-icon';
-import QrPayments from './qr-payments';
-import SplitBills from './split-bills';
-import Merchants from './merchants';
+import dynamic from 'next/dynamic';
+
+const QrPayments = dynamic(() => import('./qr-payments'), {
+  loading: () => <p role="status">Opening QR payments...</p>,
+});
+const SplitBills = dynamic(() => import('./split-bills'), {
+  loading: () => <p role="status">Opening split bills...</p>,
+});
+const Merchants = dynamic(() => import('./merchants'), {
+  loading: () => <p role="status">Opening merchants...</p>,
+});
 
 type Screen =
   | 'signin'
@@ -164,6 +172,7 @@ export default function Workspace() {
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
+  const [identityMode, setIdentityMode] = useState<'resume' | 'create'>('resume');
   const [code, setCode] = useState('');
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [history, setHistory] = useState<Payment[]>([]);
@@ -208,7 +217,6 @@ export default function Workspace() {
     setHistory([]);
     setRequests([]);
     setSelectedRequest(null);
-    setVisibility(null);
     Promise.all([
       request<Account[]>(`/banking/accounts?userId=${identity.id}`),
       request<Payment[]>(`/payments?userId=${identity.id}`),
@@ -261,6 +269,7 @@ export default function Workspace() {
   }
 
   function activate(next: SavedIdentity) {
+    setVisibility(null);
     setPendingIdentity(null);
     setChallenge(null);
     setUsername('');
@@ -332,6 +341,27 @@ export default function Workspace() {
       setChallenge(null);
       setPhone('');
       setCode('');
+    });
+  }
+
+  async function resumeIdentity(event: FormEvent) {
+    event.preventDefault();
+    await run(async () => {
+      const restored = await request<
+        SavedIdentity & { phoneVerified: boolean; directoryListingEnabled: boolean }
+      >('/identity/resume', 'POST', { username, phoneNumber: phone });
+      if (!restored.phoneVerified) {
+        setPendingIdentity(restored);
+        setChallenge(
+          await request<Challenge>(`/identity/users/${restored.id}/phone-verification`, 'POST'),
+        );
+        setCode('');
+        setScreen('verify');
+        return;
+      }
+      remember(restored);
+      activate(restored);
+      setVisibility(restored.directoryListingEnabled);
     });
   }
 
@@ -533,7 +563,18 @@ export default function Workspace() {
     setScreen(next);
     setError('');
     setNotice('');
-    void run(refresh);
+    if (!identity) return;
+    if (next === 'overview') void run(refresh);
+    else if (next === 'accounts')
+      void run(async () =>
+        setAccounts(await request<Account[]>(`/banking/accounts?userId=${identity.id}`)),
+      );
+    else if (next === 'activity')
+      void run(async () => setHistory(await request<Payment[]>(`/payments?userId=${identity.id}`)));
+    else if (next === 'requests')
+      void run(async () =>
+        setRequests(await request<PaymentRequest[]>(`/payment-requests?userId=${identity.id}`)),
+      );
   }
 
   function signOut() {
@@ -634,6 +675,10 @@ export default function Workspace() {
         <span className="environment">
           <span /> DEVELOPMENT
         </span>
+        <a className="nav-item" href="/admin">
+          <Icon name="shield-check" />
+          Administration
+        </a>
         {identity ? (
           <>
             <nav aria-label="Main navigation">
@@ -742,11 +787,38 @@ export default function Workspace() {
               <section>
                 <SectionTitle eyebrow="KLIKS / DEVELOPMENT" title="Your people. Your bank." />
                 <div className="signin-form">
-                  <h2>Create a development identity</h2>
+                  <h2>
+                    {identityMode === 'resume'
+                      ? 'Resume your development identity'
+                      : 'Create a development identity'}
+                  </h2>
                   <p className="muted">
                     Development-only verification. Not production authentication.
                   </p>
-                  <form onSubmit={createIdentity}>
+                  <fieldset className="segmented">
+                    <legend className="sr-only">Development identity mode</legend>
+                    {(['resume', 'create'] as const).map((value) => (
+                      <label key={value}>
+                        <input
+                          type="radio"
+                          name="identity-mode"
+                          checked={identityMode === value}
+                          disabled={busy}
+                          onChange={() => {
+                            setIdentityMode(value);
+                            setPendingIdentity(null);
+                            setError('');
+                          }}
+                        />
+                        <span>{value === 'resume' ? 'Existing identity' : 'New identity'}</span>
+                      </label>
+                    ))}
+                  </fieldset>
+                  <p className="fine-print">
+                    Identities are stored on the server. This browser only remembers which
+                    identities you saved here.
+                  </p>
+                  <form onSubmit={identityMode === 'resume' ? resumeIdentity : createIdentity}>
                     <label>
                       Username
                       <input
@@ -774,7 +846,11 @@ export default function Workspace() {
                       />
                     </label>
                     <Button icon="arrow-right" disabled={busy} type="submit">
-                      {pendingIdentity ? 'Retry verification challenge' : 'Continue'}
+                      {identityMode === 'resume'
+                        ? 'Resume identity'
+                        : pendingIdentity
+                          ? 'Retry verification challenge'
+                          : 'Continue'}
                     </Button>
                   </form>
                   {pendingIdentity && (
@@ -794,7 +870,7 @@ export default function Workspace() {
               </section>
               <section className="test-identities">
                 <div className="section-heading">
-                  <h2>Local test identities</h2>
+                  <h2>Remembered on this browser</h2>
                   <Icon name="users" />
                 </div>
                 {saved.length ? (
@@ -811,7 +887,10 @@ export default function Workspace() {
                     ))}
                   </div>
                 ) : (
-                  <p className="muted">No saved identities.</p>
+                  <p className="muted">
+                    No identities remembered here. Resume an existing server identity or create a
+                    new one.
+                  </p>
                 )}
                 <Button
                   icon="users"

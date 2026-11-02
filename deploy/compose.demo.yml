@@ -45,6 +45,7 @@ services:
       <<: *database
       NODE_ENV: development
       PORT: '3001'
+      DEMO_ADMIN_TOKEN: ${DEMO_ADMIN_TOKEN:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,6 +91,10 @@ services:
       DEMO_HOSTNAME: ${DEMO_HOSTNAME:?Set DEMO_HOSTNAME}
       DEMO_USER: ${DEMO_USER:?Set DEMO_USER}
       DEMO_PASSWORD_HASH: ${DEMO_PASSWORD_HASH:?Set a Caddy bcrypt hash}
+      DEMO_ADMIN_ENABLED: ${DEMO_ADMIN_ENABLED:-0}
+      DEMO_ADMIN_TOKEN: ${DEMO_ADMIN_TOKEN:-}
+      DEMO_ADMIN_USER: ${DEMO_ADMIN_USER:-disabled}
+      DEMO_ADMIN_PASSWORD_HASH: ${DEMO_ADMIN_PASSWORD_HASH:-${DEMO_PASSWORD_HASH}}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

@@ -67,6 +67,34 @@ export class IdentityService {
     }
   }
 
+  async resumeIdentity(
+    input: CreateIdentityInput,
+  ): Promise<PublicIdentity & { directoryListingEnabled: boolean }> {
+    let phoneNumber: KosovoPhoneNumber;
+    let username: Username;
+    try {
+      phoneNumber = KosovoPhoneNumber.parse(input.phoneNumber);
+      username = Username.parse(input.username);
+    } catch {
+      throw new NotFoundException('Development identity not found.');
+    }
+    const user = await this.database.client.user.findFirst({
+      where: { phoneNumber: phoneNumber.e164, username: username.value },
+      select: {
+        id: true,
+        username: true,
+        phoneVerifiedAt: true,
+        createdAt: true,
+        directoryListingEnabled: true,
+      },
+    });
+    if (!user) throw new NotFoundException('Development identity not found.');
+    return {
+      ...this.toPublicIdentity(user),
+      directoryListingEnabled: user.directoryListingEnabled,
+    };
+  }
+
   async startPhoneVerification(userId: string): Promise<DevelopmentVerificationChallenge> {
     const user = await this.database.client.user.findUnique({
       where: { id: userId },

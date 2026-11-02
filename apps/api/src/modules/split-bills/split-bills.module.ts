@@ -9,5 +9,6 @@ import { SplitBillsService } from './split-bills.service.js';
   imports: [AuditModule, PaymentRequestsModule],
   controllers: [SplitBillsController],
   providers: [SplitBillsService, DevelopmentOnlyGuard],
+  exports: [SplitBillsService],
 })
 export class SplitBillsModule {}

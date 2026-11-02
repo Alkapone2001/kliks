@@ -10,5 +10,6 @@ import { MerchantsService } from './merchants.service.js';
   imports: [AuditModule, PaymentRequestsModule, QrPaymentsModule],
   controllers: [MerchantsController],
   providers: [MerchantsService, DevelopmentOnlyGuard],
+  exports: [MerchantsService],
 })
 export class MerchantsModule {}

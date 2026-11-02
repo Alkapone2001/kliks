@@ -232,6 +232,7 @@ export default function App() {
   const [challenge, setChallenge] = useState<VerificationChallenge | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [username, setUsername] = useState('');
+  const [identityMode, setIdentityMode] = useState<'resume' | 'create'>('resume');
   const [verificationCode, setVerificationCode] = useState('');
   const [accounts, setAccounts] = useState<LinkedAccount[]>([]);
   const [recipientMode, setRecipientMode] = useState<RecipientMode>('username');
@@ -382,11 +383,20 @@ export default function App() {
 
   async function createDevelopmentIdentity(): Promise<void> {
     await runAction(async () => {
-      const created = await apiRequest<Omit<Identity, 'directoryListingEnabled'>>(
-        '/identity/users',
+      const created = await apiRequest<Identity>(
+        identityMode === 'resume' ? '/identity/resume' : '/identity/users',
         'POST',
         { phoneNumber, username },
       );
+      if (identityMode === 'resume' && created.phoneVerified) {
+        await AsyncStorage.setItem(identityStorageKey, JSON.stringify(created));
+        setIdentity(created);
+        setChallenge(null);
+        setPhoneNumber('');
+        setScreen('home');
+        await loadAccounts(created.id);
+        return;
+      }
       const newChallenge = await apiRequest<VerificationChallenge>(
         `/identity/users/${created.id}/phone-verification`,
         'POST',
@@ -591,6 +601,8 @@ export default function App() {
             <IdentityScreen
               phoneNumber={phoneNumber}
               username={username}
+              mode={identityMode}
+              onChangeMode={setIdentityMode}
               busy={busy}
               fontRegular={fontRegular}
               fontSemibold={fontSemibold}
@@ -954,6 +966,8 @@ export default function App() {
 function IdentityScreen({
   phoneNumber,
   username,
+  mode,
+  onChangeMode,
   busy,
   fontRegular,
   fontSemibold,
@@ -964,6 +978,8 @@ function IdentityScreen({
 }: {
   phoneNumber: string;
   username: string;
+  mode: 'resume' | 'create';
+  onChangeMode: (mode: 'resume' | 'create') => void;
   busy: boolean;
   fontRegular: object | undefined;
   fontSemibold: object | undefined;
@@ -975,10 +991,34 @@ function IdentityScreen({
   return (
     <View style={styles.content}>
       <Text style={[styles.eyebrow, fontSemibold]}>PHASE 06 / MOBILE MVP</Text>
-      <Text style={[styles.title, styles.titleLight, fontBold]}>Start with your identity.</Text>
-      <Text style={[styles.body, styles.bodyLight, fontRegular]}>
-        Create a development identity to explore the simulated KLIKS flow.
+      <Text style={[styles.title, styles.titleLight, fontBold]}>
+        {mode === 'resume' ? 'Resume your identity.' : 'Start with your identity.'}
       </Text>
+      <Text style={[styles.body, styles.bodyLight, fontRegular]}>
+        {mode === 'resume'
+          ? 'Use the same test username and phone number.'
+          : 'Create a new synthetic identity.'}
+      </Text>
+      <View accessibilityRole="radiogroup" style={{ flexDirection: 'row', gap: 16 }}>
+        {(['resume', 'create'] as const).map((value) => (
+          <Pressable
+            key={value}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: mode === value, disabled: busy }}
+            disabled={busy}
+            onPress={() => onChangeMode(value)}
+            style={[
+              styles.button,
+              { flex: 1, minWidth: 0 },
+              mode === value ? styles.button_primary : styles.button_secondary,
+            ]}
+          >
+            <Text style={[styles.buttonText, mode !== value && styles.buttonTextSecondary]}>
+              {value === 'resume' ? 'Existing identity' : 'New identity'}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
       <SimulationNotice compact />
       <Text style={[styles.label, fontSemibold]}>KOSOVO PHONE NUMBER</Text>
       <TextInput
@@ -1005,7 +1045,13 @@ function IdentityScreen({
       />
       <ActionButton
         disabled={busy}
-        label={busy ? 'Creating identity...' : 'Create development identity'}
+        label={
+          busy
+            ? 'Opening identity...'
+            : mode === 'resume'
+              ? 'Resume development identity'
+              : 'Create development identity'
+        }
         onPress={onCreate}
       />
       <Text style={[styles.helper, fontRegular]}>

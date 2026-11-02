@@ -27,6 +27,16 @@ export class IdentityController {
     return this.identityService.createIdentity(body);
   }
 
+  @Post('resume')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Resume a stored development identity using its username and test phone; not production authentication.',
+  })
+  resumeIdentity(@Body() body: CreateIdentityDto) {
+    return this.identityService.resumeIdentity(body);
+  }
+
   @Post('users/:userId/phone-verification')
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({ summary: 'Start a simulated phone verification; no SMS is sent.' })

@@ -86,6 +86,34 @@ Compare the release SHA to the desired GitHub `main` commit. If deployment is st
 
 Database contents, demo login, database credentials and TLS data are server state, not Git source. Releases preserve their Docker volumes and root-owned configuration. Commit required Prisma migrations with the code; changing an existing database password or destructive schema needs an explicit data/backup plan. Merely changing the environment password does not automatically rotate an existing PostgreSQL account password.
 
+## Identity Persistence and Administration
+
+The browser's remembered identity selector is not the database. Clearing storage, using private browsing, changing hostname or opening another device loses the selector, not necessarily its PostgreSQL records. Select **Existing identity** and enter the same synthetic username and phone number to resume the same ID; directory opt-out does not prevent this. Unfinished identities continue simulated verification. This is development-only recovery, not production authentication. Local PostgreSQL and the hosted PostgreSQL are independent.
+
+The administration dashboard at `/admin` lists server-side records even when the browser remembers no identities. It provides bounded search/pagination and confirmed actions using existing domain services. Payments/audit remain read-only, terminal financial states cannot be rewritten, and deletion/forced settlement are intentionally unavailable. Only synthetic data is permitted.
+
+Administration defaults to disabled, preserving existing deployments. An operator must explicitly provision separate credentials from a reviewed release containing the new setup script, before deploying that release:
+
+```bash
+bash deploy/setup-admin.sh
+bash deploy/release.sh VERIFIED_40_CHARACTER_COMMIT_SHA
+```
+
+Run as the server administrator from that release's directory. The script generates a separate strong administrator password and random server-only token, appends the configuration to `/etc/kliks-demo.env`, and stores the login at `/root/kliks-admin-login.txt`, both root-only. It refuses to overwrite an existing administrator configuration. It does not rotate SSH, database or shared website credentials. Read the login privately into your password manager; do not paste it into chat or Git. A normal app release does not provision administrator credentials, and no new credentials have been installed merely by editing this repository.
+
+Caddy requires the separate administrator login for `/admin`, its subpaths and `/api/admin/*`. Shared assets/ordinary workspace accept either login. It removes inbound `X-Kliks-Admin-Token` everywhere and only injects the genuine server token after administrator authentication. Cross-site/foreign-Origin admin requests are rejected. The token exists only in private API/proxy environments, never in the browser bundle, storage or public environment variables. Keep API/web ports private; direct API access would bypass the proxy's credential boundary. This remains a protected development tool, not a production authorization system.
+
+After activation, check anonymous and shared-login admin requests return 401, administrator page/API/assets work, forged token headers cannot elevate the shared login, and foreign-Origin requests return 403. Without configuration, admin routes return 404. Keep HTTPS certificate checks enabled. Local tests used disposable synthetic credentials, not the hosted secrets.
+
+To investigate reported missing users, inspect aggregates and the actual volume without printing personal details or credentials:
+
+```bash
+docker inspect kliks-demo-postgres-1 --format '{{range .Mounts}}{{println .Name .Destination}}{{end}}'
+docker exec kliks-demo-postgres-1 psql -U kliks -d kliks -c 'SELECT count(*) AS users, min(created_at) AS oldest, max(created_at) AS newest FROM users;'
+```
+
+Compare the correct host/release and volume before considering any reset. The Compose project is fixed as `kliks-demo` and PostgreSQL mounts persistent `postgres-data`; normal releases/migrations do not intentionally clear users. Do not infer that the hosted database never lost data from browser behavior or local tests alone. Never delete volumes, reset the database or change its password as a recovery shortcut. Regular encrypted backups and a tested restore procedure remain operational work, not a guarantee supplied by the named volume.
+
 ## Cross-Device Secrets and Recovery
 
 - Keep the SSH administrator and website passwords in your password manager, not this runbook or Git history. Recover the website login through the root-only server file if necessary, without posting its contents publicly.

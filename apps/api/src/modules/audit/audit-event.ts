@@ -30,7 +30,10 @@ export type AuditEventType =
   | 'MERCHANT_ROLE_CHANGED'
   | 'MERCHANT_REQUEST_CREATED'
   | 'MERCHANT_REQUEST_CANCELLED'
-  | 'MERCHANT_QR_CREATED';
+  | 'MERCHANT_QR_CREATED'
+  | 'ADMIN_ACTION_REQUESTED'
+  | 'ADMIN_ACTION_COMPLETED'
+  | 'ADMIN_ACTION_FAILED';
 
 export type AuditMetadata = Readonly<Record<string, string | number | boolean | null>>;
 

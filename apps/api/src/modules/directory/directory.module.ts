@@ -9,5 +9,6 @@ import { DirectoryService } from './directory.service.js';
   imports: [AuditModule],
   controllers: [DirectoryController],
   providers: [DirectoryService, DevelopmentOnlyGuard, DirectoryRateLimitGuard],
+  exports: [DirectoryService],
 })
 export class DirectoryModule {}

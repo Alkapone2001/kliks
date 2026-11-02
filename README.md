@@ -88,6 +88,16 @@ Browser MVP: `http://localhost:3000`. Keep the API running alongside it. Next.js
 
 Manual identity creation and development-code verification are also available. Use synthetic phone numbers only. Saved identity selection is a local development convenience, not secure login, account recovery, or production authentication. Browser storage contains identity IDs/usernames and the active identity ID only; it does not contain phone numbers, verification codes, bank references, or balances. Clearing browser storage removes this local identity selector, not the database records. Icons use versioned Lucide SVG assets from jsDelivr; API requests stay local.
 
+**Existing identity** on web and mobile resumes the stored database user using the same synthetic username and phone number, including identities with directory discovery disabled. An unfinished identity continues simulated verification. This development-only convenience is not secure customer authentication. Local and hosted databases are separate; switching hostnames, browsers or devices does not copy their remembered identity lists.
+
+### Administration and performance
+
+The separate `/admin` dashboard searches server users, bank connections, payments, requests, merchants, split bills, QR sessions and audit events in pages of 25. It supports confirmed directory/account management, pending request/bill cancellation, and merchant profile/staff updates through existing validated services. Payments and audit events cannot be edited or deleted; no administrator can force a payment to succeed. Every management attempt and outcome is audited. Phone numbers, verification secrets and provider account references are not returned.
+
+Hosted administrator access requires separate credentials and a server-only token; the shared demo login cannot administer the application. Administration is disabled until explicitly configured. See [administrator setup and persistence checks](deploy/README.md#identity-persistence-and-administration). The local Next server alone does not provide an administrator login or inject a token into browser requests.
+
+QR/scanner, split-bill and merchant screens now load their JavaScript on demand. Section navigation fetches only its relevant collection instead of refreshing accounts, payments and requests together. A local production-build browser check observed one API request when opening Bank accounts (previously three), and a QR JavaScript chunk fetched only when opening QR. These are request/bundle changes, not a measured hosted latency claim. Financial data remains uncached; initial overview still loads the three collections.
+
 Run the browser unit tests with `pnpm --filter @kliks/web test`; the root `pnpm test` also includes them.
 
 ### Test payment requests

@@ -13,6 +13,6 @@ import { BankingService } from './banking.service.js';
     BankingService,
     { provide: BANK_CONNECTOR, useExisting: MockBankConnector },
   ],
-  exports: [BANK_CONNECTOR],
+  exports: [BANK_CONNECTOR, BankingService],
 })
 export class BankingModule {}
