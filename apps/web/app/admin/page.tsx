@@ -82,6 +82,7 @@ export default function Administration() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [revision, setRevision] = useState(0);
+  const [overviewRevision, setOverviewRevision] = useState(0);
   const cursor = cursors[cursors.length - 1];
 
   useEffect(() => {
@@ -93,13 +94,9 @@ export default function Administration() {
     setSelected(null);
     setAction('');
     setError('');
-    void Promise.all([
-      api<Records>(`records?${params}`, controller.signal),
-      api<Overview>('overview', controller.signal),
-    ])
-      .then(([next, counts]) => {
+    void api<Records>(`records?${params}`, controller.signal)
+      .then((next) => {
         setRecords(next);
-        setOverview(counts);
       })
       .catch((cause: unknown) => {
         if (!controller.signal.aborted)
@@ -110,6 +107,17 @@ export default function Administration() {
       });
     return () => controller.abort();
   }, [kind, query, cursor, revision]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void api<Overview>('overview', controller.signal)
+      .then(setOverview)
+      .catch((cause: unknown) => {
+        if (!controller.signal.aborted)
+          setError(cause instanceof Error ? cause.message : 'Unable to load dashboard counts.');
+      });
+    return () => controller.abort();
+  }, [overviewRevision]);
 
   function navigate(next: Kind) {
     setKind(next);
@@ -139,6 +147,7 @@ export default function Administration() {
       setSelected(null);
       setAction('');
       setRevision((value) => value + 1);
+      setOverviewRevision((value) => value + 1);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to save.');
     } finally {
@@ -190,7 +199,10 @@ export default function Administration() {
               title="Refresh records"
               aria-label="Refresh records"
               disabled={busy || loading}
-              onClick={() => setRevision((value) => value + 1)}
+              onClick={() => {
+                setRevision((value) => value + 1);
+                setOverviewRevision((value) => value + 1);
+              }}
             >
               <Icon name="refresh-cw" />
             </button>
